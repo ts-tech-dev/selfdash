@@ -2,6 +2,8 @@ import { useState } from 'preact/hooks';
 import { SIZE_PRESETS, sizeKeyFromWH } from '../../src/shared/tileSizes.js';
 import { api } from '../api.js';
 import { integrations } from '../store.js';
+import { DynamicConfigForm } from './DynamicConfigForm.jsx';
+import { TILE_REGISTRY, registryEntry } from '../tiles/registry.jsx';
 
 const ASPECT_RATIOS = ['16/9', '4/3', '1/1', '21/9'];
 const DEFAULT_IFRAME_CONFIG = {
@@ -11,9 +13,21 @@ const DEFAULT_IFRAME_CONFIG = {
   sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups',
 };
 
+const PANEL_TYPES = Object.keys(TILE_REGISTRY);
+const CATEGORIES = [...new Set(PANEL_TYPES.map((t) => TILE_REGISTRY[t].category))];
+
+function initialType(tile) {
+  if (!tile) return 'link';
+  if (tile.type === 'widget') return 'widget';
+  if (registryEntry(tile.type)) return tile.type;
+  return 'link';
+}
+
 export function TileModal({ tile, onClose, onSave, onDelete }) {
-  const [form, setForm] = useState({
-    kind: tile?.type === 'widget' ? 'widget' : 'link',
+  const startType = initialType(tile);
+  const [type, setType] = useState(startType);
+
+  const [form, setForm] = useState(() => ({
     title: tile?.title || '',
     url: tile?.url || '',
     icon: tile?.icon || '',
@@ -22,15 +36,40 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     open_mode: tile?.open_mode || 'newtab',
     iframe: { ...DEFAULT_IFRAME_CONFIG, ...(tile?.open_mode === 'iframe' ? tile.config : {}) },
     integration_id: tile?.integration_id || integrations.value[0]?.id || '',
-  });
+    group: tile?.config?.group || '',
+    appearance: { accent: '', iconBg: '', hideTitle: false, ...(tile?.config?.appearance || {}) },
+    // panel config, seeded from the registry defaults when adding
+    panelConfig:
+      registryEntry(startType) && tile
+        ? { ...tile.config }
+        : registryEntry(startType)
+          ? { ...registryEntry(startType).defaults.config }
+          : {},
+  }));
   const [uploading, setUploading] = useState(false);
+  const [showAppearance, setShowAppearance] = useState(false);
+
+  const isPanel = Boolean(registryEntry(type));
+  const isLink = type === 'link';
+  const isWidget = type === 'widget';
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
-
   function updateIframe(field, value) {
     setForm((f) => ({ ...f, iframe: { ...f.iframe, [field]: value } }));
+  }
+  function updatePanel(field, value) {
+    setForm((f) => ({ ...f, panelConfig: { ...f.panelConfig, [field]: value } }));
+  }
+  function updateAppearance(field, value) {
+    setForm((f) => ({ ...f, appearance: { ...f.appearance, [field]: value } }));
+  }
+
+  function onPickType(next) {
+    setType(next);
+    const entry = registryEntry(next);
+    if (entry) setForm((f) => ({ ...f, panelConfig: { ...entry.defaults.config } }));
   }
 
   async function onIconFile(e) {
@@ -47,48 +86,81 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     }
   }
 
+  function commonConfig() {
+    const cfg = {};
+    if (form.group.trim()) cfg.group = form.group.trim();
+    const a = {};
+    if (/^#[0-9a-f]{6}$/i.test(form.appearance.accent)) a.accent = form.appearance.accent;
+    if (/^#[0-9a-f]{6}$/i.test(form.appearance.iconBg)) a.iconBg = form.appearance.iconBg;
+    if (form.appearance.hideTitle) a.hideTitle = true;
+    if (Object.keys(a).length) cfg.appearance = a;
+    return cfg;
+  }
+
   function submit(e) {
     e.preventDefault();
     const { w, h } = SIZE_PRESETS[form.size];
+    const title = form.title.trim();
 
-    if (form.kind === 'widget') {
+    if (isWidget) {
       if (!form.integration_id) return;
-      onSave({ type: 'widget', title: form.title.trim(), integration_id: Number(form.integration_id), w, h });
+      onSave({ type: 'widget', title, integration_id: Number(form.integration_id), w, h, config: commonConfig() });
+      return;
+    }
+
+    if (isPanel) {
+      onSave({ type, title, w, h, config: { ...form.panelConfig, ...commonConfig() } });
       return;
     }
 
     if (!form.url.trim()) return;
     onSave({
       type: 'link',
-      title: form.title.trim(),
+      title,
       url: form.url.trim(),
       icon: form.icon.trim() || null,
       description: form.description.trim() || null,
       open_mode: form.open_mode,
       w,
       h,
-      config: form.open_mode === 'iframe' ? form.iframe : undefined,
+      config: form.open_mode === 'iframe' ? { ...form.iframe, ...commonConfig() } : commonConfig(),
     });
   }
+
+  const panelEntry = registryEntry(type);
 
   return (
     <div class="modal-backdrop" onClick={onClose}>
       <form class="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <h2>{tile ? 'Edit tile' : 'Add tile'}</h2>
+
         {!tile && (
           <label>
             Tile type
-            <select value={form.kind} onChange={(e) => update('kind', e.target.value)}>
-              <option value="link">Link</option>
-              <option value="widget">Widget (from integration)</option>
+            <select value={type} onChange={(e) => onPickType(e.target.value)}>
+              <optgroup label="Core">
+                <option value="link">Link</option>
+                <option value="widget">Widget (from integration)</option>
+              </optgroup>
+              {CATEGORIES.map((cat) => (
+                <optgroup key={cat} label={cat}>
+                  {PANEL_TYPES.filter((t) => TILE_REGISTRY[t].category === cat).map((t) => (
+                    <option key={t} value={t}>
+                      {TILE_REGISTRY[t].label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </label>
         )}
+
         <label>
           Title
           <input value={form.title} onInput={(e) => update('title', e.target.value)} />
         </label>
-        {form.kind === 'widget' ? (
+
+        {isWidget && (
           <label>
             Integration
             <select value={form.integration_id} onChange={(e) => update('integration_id', e.target.value)}>
@@ -100,7 +172,17 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
               ))}
             </select>
           </label>
-        ) : (
+        )}
+
+        {isPanel && panelEntry && (
+          panelEntry.ConfigForm ? (
+            <panelEntry.ConfigForm value={form.panelConfig} onChange={updatePanel} />
+          ) : (
+            <DynamicConfigForm fields={panelEntry.fields || []} value={form.panelConfig} onChange={updatePanel} />
+          )
+        )}
+
+        {isLink && (
           <>
             <label>
               URL
@@ -125,6 +207,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
             </label>
           </>
         )}
+
         <label>
           Size
           <select value={form.size} onChange={(e) => update('size', e.target.value)}>
@@ -135,7 +218,8 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
             ))}
           </select>
         </label>
-        {form.kind === 'link' && (
+
+        {isLink && (
           <label>
             Open in
             <select value={form.open_mode} onChange={(e) => update('open_mode', e.target.value)}>
@@ -145,7 +229,8 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
             </select>
           </label>
         )}
-        {form.kind === 'link' && form.open_mode === 'iframe' && (
+
+        {isLink && form.open_mode === 'iframe' && (
           <fieldset class="iframe-fields">
             <label>
               Sizing
@@ -183,6 +268,52 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
             </label>
           </fieldset>
         )}
+
+        <button type="button" class="modal-disclosure" onClick={() => setShowAppearance((v) => !v)}>
+          {showAppearance ? '▾' : '▸'} Group & appearance
+        </button>
+        {showAppearance && (
+          <fieldset class="iframe-fields">
+            <label>
+              Group (tiles with the same group are shown under one heading)
+              <input value={form.group} onInput={(e) => update('group', e.target.value)} />
+            </label>
+            <div class="settings-form-row">
+              <label>
+                Accent
+                <input
+                  type="color"
+                  value={form.appearance.accent || '#5b8def'}
+                  onInput={(e) => updateAppearance('accent', e.target.value)}
+                />
+              </label>
+              <label>
+                Icon background
+                <input
+                  type="color"
+                  value={form.appearance.iconBg || '#5b8def'}
+                  onInput={(e) => updateAppearance('iconBg', e.target.value)}
+                />
+              </label>
+              <label class="checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={form.appearance.hideTitle}
+                  onChange={(e) => updateAppearance('hideTitle', e.target.checked)}
+                />
+                Hide title bar
+              </label>
+            </div>
+            <button
+              type="button"
+              class="modal-disclosure"
+              onClick={() => setForm((f) => ({ ...f, appearance: { accent: '', iconBg: '', hideTitle: false } }))}
+            >
+              Reset appearance
+            </button>
+          </fieldset>
+        )}
+
         <div class="modal-actions">
           {tile && onDelete && (
             <button

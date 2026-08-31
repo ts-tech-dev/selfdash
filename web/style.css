@@ -1480,3 +1480,356 @@ body {
     padding-top: 0;
   }
 }
+
+/* ============================================================================
+   Built-in panel tiles (clock, weather, notes, search, rss, calendar,
+   bookmarks, custom API, host resources) + their config editors
+   ============================================================================ */
+
+.tile-panel-card {
+  position: relative;
+}
+
+.tile-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tile-panel-muted,
+.tile-notes-empty,
+.tile-bookmarks-empty {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin: auto;
+  text-align: center;
+}
+
+/* --- Clock --- */
+.tile-clock {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+}
+.tile-clock-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tile-clock-time {
+  font-size: clamp(1.6rem, 6vw, 2.6rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.tile-clock-date {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* --- Search --- */
+.tile-search {
+  justify-content: center;
+}
+.tile-search form {
+  display: flex;
+  gap: 6px;
+}
+.tile-search input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 0.9rem;
+}
+.tile-search button {
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: #08101f;
+  font-weight: 700;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+/* --- Notes / Markdown --- */
+.tile-markdown {
+  display: block;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.tile-markdown h1,
+.tile-markdown h2,
+.tile-markdown h3 {
+  margin: 0.4em 0 0.3em;
+  line-height: 1.25;
+}
+.tile-markdown h1 { font-size: 1.15rem; }
+.tile-markdown h2 { font-size: 1.05rem; }
+.tile-markdown h3 { font-size: 0.95rem; }
+.tile-markdown p { margin: 0 0 0.6em; }
+.tile-markdown ul,
+.tile-markdown ol { margin: 0 0 0.6em; padding-left: 1.4em; }
+.tile-markdown a { color: var(--accent); }
+.tile-markdown code {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+  font-size: 0.85em;
+}
+.tile-markdown pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  overflow-x: auto;
+}
+.tile-markdown pre code { background: none; border: none; padding: 0; }
+.tile-markdown blockquote {
+  margin: 0 0 0.6em;
+  padding-left: 10px;
+  border-left: 3px solid var(--border);
+  color: var(--text-dim);
+}
+.tile-markdown img { border-radius: 6px; }
+
+/* --- Bookmarks --- */
+.tile-bookmarks ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--bookmark-cols, 1), 1fr);
+  gap: 4px 12px;
+}
+.tile-bookmarks a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.tile-bookmarks a:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.tile-bookmarks img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.tile-bookmark-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tile-icon-bg, var(--accent));
+  flex-shrink: 0;
+  margin: 0 5px;
+}
+
+/* --- Weather --- */
+.tile-weather {
+  justify-content: center;
+  gap: 4px;
+}
+.tile-weather-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tile-weather-icon { font-size: 2rem; }
+.tile-weather-temp {
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tile-weather-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+/* --- RSS / Calendar shared list look --- */
+.tile-feed ul,
+.tile-cal ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tile-feed-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.tile-feed li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+.tile-feed li a {
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-feed li a:hover { color: var(--accent); }
+.tile-feed-date,
+.tile-cal-when {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.tile-cal li {
+  display: flex;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+.tile-cal-when { min-width: 5.5em; }
+.tile-cal-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Host resources --- */
+.tile-res { gap: 10px; justify-content: center; }
+.tile-res-row { display: flex; flex-direction: column; gap: 4px; }
+.tile-res-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.tile-res-track {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.tile-res-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.tile-res-fill[data-hot] { background: #f85149; }
+
+/* --- Custom API --- */
+.tile-customapi-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-content: center;
+  flex: 1;
+}
+.tile-customapi-stat { display: flex; flex-direction: column; }
+.tile-customapi-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tile-customapi-label { font-size: 0.72rem; color: var(--text-dim); }
+.tile-customapi-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.tile-customapi-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+.tile-customapi-sub { color: var(--text-dim); flex-shrink: 0; }
+
+/* --- Tile modal: repeatable-row config editors + disclosure --- */
+.tile-config-repeat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+.tile-config-repeat-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 4px;
+}
+.tile-config-repeat-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.tile-config-repeat-row input,
+.tile-config-repeat-row select {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 0.85rem;
+}
+.tile-config-repeat-row button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.tile-config-repeat-add {
+  align-self: flex-start;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+.tile-config-repeat textarea,
+.modal textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+.modal-disclosure {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 4px 0;
+}
+.modal-disclosure:hover { color: var(--text); }

@@ -1,21 +1,12 @@
-const URL_RE = /^https?:\/\//i;
+import {
+  TILE_TYPES,
+  PANEL_TYPES,
+  buildIframeConfig,
+  sanitizeTileConfig,
+  URL_RE,
+} from '../shared/tileConfig.js';
+
 const OPEN_MODES = new Set(['newtab', 'same', 'iframe']);
-const ASPECT_RE = /^\d{1,3}\s*\/\s*\d{1,3}$/;
-const DEFAULT_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups';
-const VALID_SANDBOX_TOKENS = new Set([
-  'allow-downloads',
-  'allow-forms',
-  'allow-modals',
-  'allow-orientation-lock',
-  'allow-pointer-lock',
-  'allow-popups',
-  'allow-popups-to-escape-sandbox',
-  'allow-presentation',
-  'allow-same-origin',
-  'allow-scripts',
-  'allow-top-navigation',
-  'allow-top-navigation-by-user-activation',
-]);
 
 export default async function tilesRoutes(app) {
   const db = app.db;
@@ -34,24 +25,13 @@ export default async function tilesRoutes(app) {
     if (!page) return reply.code(404).send({ error: 'page not found' });
 
     const body = req.body || {};
-    const type = body.type === 'widget' ? 'widget' : 'link';
+    const type = TILE_TYPES.has(body.type) ? body.type : 'link';
 
-    let url = null;
-    let open_mode = 'newtab';
-    let config = {};
-    let integrationId = null;
-
-    if (type === 'widget') {
-      integrationId = Number(body.integration_id);
-      const integration = db.prepare('SELECT id FROM integrations WHERE id = ?').get(integrationId);
-      if (!integration) return reply.code(400).send({ error: 'integration_id must reference an existing integration' });
-    } else {
-      if (!body.url || typeof body.url !== 'string' || !URL_RE.test(body.url)) {
-        return reply.code(400).send({ error: 'url is required and must start with http:// or https://' });
-      }
-      url = body.url;
-      open_mode = normalizeOpenMode(body.open_mode);
-      config = open_mode === 'iframe' ? buildIframeConfig(body.config) : {};
+    let fields;
+    try {
+      fields = resolveTileFields(db, type, body, null);
+    } catch (err) {
+      return reply.code(400).send({ error: err.message });
     }
 
     const w = clamp(Number(body.w) || 2, 1, 6);
@@ -69,15 +49,15 @@ export default async function tilesRoutes(app) {
         pageId,
         type,
         body.title || null,
-        url,
+        fields.url,
         body.icon || null,
         body.description || null,
-        open_mode,
-        integrationId,
+        fields.open_mode,
+        fields.integration_id,
         w,
         h,
         maxPos + 1,
-        JSON.stringify(config)
+        JSON.stringify(fields.config)
       );
 
     return reply.code(201).send(mapTile(db.prepare('SELECT * FROM tiles WHERE id = ?').get(info.lastInsertRowid)));
@@ -89,29 +69,13 @@ export default async function tilesRoutes(app) {
     if (!existing) return reply.code(404).send({ error: 'not found' });
 
     const body = req.body || {};
-    const type = body.type !== undefined ? (body.type === 'widget' ? 'widget' : 'link') : existing.type;
+    const type = body.type !== undefined && TILE_TYPES.has(body.type) ? body.type : existing.type;
 
-    let url = existing.url;
-    let open_mode = existing.open_mode;
-    let config = JSON.parse(existing.config_json || '{}');
-    let integrationId = existing.integration_id;
-
-    if (type === 'widget') {
-      if (body.integration_id !== undefined) integrationId = Number(body.integration_id);
-      const integration = integrationId ? db.prepare('SELECT id FROM integrations WHERE id = ?').get(integrationId) : null;
-      if (!integration) return reply.code(400).send({ error: 'integration_id must reference an existing integration' });
-      url = null;
-      open_mode = 'newtab';
-      config = {};
-    } else {
-      if (body.url !== undefined) {
-        if (!URL_RE.test(body.url)) return reply.code(400).send({ error: 'url must start with http:// or https://' });
-        url = body.url;
-      }
-      open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : open_mode;
-      const configSource = body.config !== undefined ? body.config : config;
-      config = open_mode === 'iframe' ? buildIframeConfig(configSource) : {};
-      integrationId = null;
+    let fields;
+    try {
+      fields = resolveTileFields(db, type, body, existing);
+    } catch (err) {
+      return reply.code(400).send({ error: err.message });
     }
 
     const next = {
@@ -129,14 +93,14 @@ export default async function tilesRoutes(app) {
     ).run(
       type,
       next.title,
-      url,
+      fields.url,
       next.icon,
       next.description,
-      open_mode,
-      integrationId,
+      fields.open_mode,
+      fields.integration_id,
       next.w,
       next.h,
-      JSON.stringify(config),
+      JSON.stringify(fields.config),
       id
     );
 
@@ -169,6 +133,40 @@ export default async function tilesRoutes(app) {
   });
 }
 
+// Works out { url, open_mode, integration_id, config } for a given tile type from the
+// request body, falling back to `existing` (a DB row) for fields the caller omitted.
+function resolveTileFields(db, type, body, existing) {
+  const existingConfig = existing ? JSON.parse(existing.config_json || '{}') : {};
+
+  if (type === 'widget') {
+    let integrationId = existing ? existing.integration_id : null;
+    if (body.integration_id !== undefined) integrationId = Number(body.integration_id);
+    const integration = integrationId
+      ? db.prepare('SELECT id FROM integrations WHERE id = ?').get(integrationId)
+      : null;
+    if (!integration) throw new Error('integration_id must reference an existing integration');
+    return { url: null, open_mode: 'newtab', integration_id: integrationId, config: {} };
+  }
+
+  if (PANEL_TYPES.has(type)) {
+    const raw = body.config !== undefined ? body.config : existingConfig;
+    return { url: null, open_mode: 'newtab', integration_id: null, config: sanitizeTileConfig(type, raw) };
+  }
+
+  // link (incl. iframe open mode)
+  let url = existing ? existing.url : null;
+  if (body.url !== undefined) {
+    if (!URL_RE.test(body.url)) throw new Error('url must start with http:// or https://');
+    url = body.url;
+  }
+  if (!url) throw new Error('url is required and must start with http:// or https://');
+
+  const open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : existing?.open_mode || 'newtab';
+  const configSource = body.config !== undefined ? body.config : existingConfig;
+  const config = open_mode === 'iframe' ? buildIframeConfig(configSource) : {};
+  return { url, open_mode, integration_id: null, config };
+}
+
 function clamp(n, min, max) {
   if (Number.isNaN(n)) return min;
   return Math.min(max, Math.max(min, n));
@@ -176,21 +174,6 @@ function clamp(n, min, max) {
 
 function normalizeOpenMode(value) {
   return OPEN_MODES.has(value) ? value : 'newtab';
-}
-
-function buildIframeConfig(raw) {
-  const cfg = raw || {};
-  const sizing = cfg.sizing === 'height' ? 'height' : 'aspect';
-  const aspectRatio = typeof cfg.aspectRatio === 'string' && ASPECT_RE.test(cfg.aspectRatio.trim())
-    ? cfg.aspectRatio.trim()
-    : '16/9';
-  const rawHeight = Number(cfg.height);
-  const height = Number.isFinite(rawHeight) ? clamp(rawHeight, 100, 2000) : 400;
-  const tokens = (typeof cfg.sandbox === 'string' ? cfg.sandbox.split(/\s+/) : DEFAULT_SANDBOX.split(' ')).filter(
-    (t) => VALID_SANDBOX_TOKENS.has(t)
-  );
-  const sandbox = tokens.length ? tokens.join(' ') : DEFAULT_SANDBOX;
-  return { sizing, aspectRatio, height, sandbox };
 }
 
 function mapTile(row) {

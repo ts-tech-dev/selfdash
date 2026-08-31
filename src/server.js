@@ -13,6 +13,7 @@ import integrationsRoutes from './routes/integrations.js';
 import backupRoutes from './routes/backup.js';
 import composeScanRoutes from './routes/composeScan.js';
 import healthRoutes from './routes/health.js';
+import tileDataRoutes from './routes/tileData.js';
 import { loadIntegrations } from './integrations/_registry.js';
 import { makeCrypto } from './lib/crypto.js';
 import { httpClient } from './lib/httpClient.js';
@@ -59,6 +60,7 @@ app.register(integrationsRoutes);
 app.register(backupRoutes);
 app.register(composeScanRoutes);
 app.register(healthRoutes);
+app.register(tileDataRoutes);
 
 app.register(fastifyStatic, {
   root: uploadsDir,

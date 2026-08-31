@@ -50,6 +50,19 @@ export function DynamicConfigForm({ fields, value, onChange, secretHints = {} })
           );
         }
 
+        if (field.type === 'textarea') {
+          return (
+            <label key={field.name}>
+              {field.label || field.name}
+              <textarea
+                rows={field.rows || 6}
+                value={value[field.name] ?? ''}
+                onInput={(e) => onChange(field.name, e.target.value)}
+              />
+            </label>
+          );
+        }
+
         if (field.type === 'select') {
           return (
             <label key={field.name}>
