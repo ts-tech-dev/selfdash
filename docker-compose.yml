@@ -11,6 +11,9 @@ services:
       - DATA_DIR=/data
       - LOG_LEVEL=info
       - POLL_MIN_INTERVAL=15
+      # uid:gid that should own ./data — override if the host user isn't 1000:1000
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
     # APP_SECRET (encrypts stored integration credentials at rest) is read from .env —
     # copy .env.example to .env and set it. See README "Environment variables".
     env_file:

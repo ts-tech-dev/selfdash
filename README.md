@@ -20,6 +20,10 @@ Then open `http://localhost:3000`. That's it — a "Home" page is created automa
 boot. `docker compose down` stops it; your data stays in the `./data` directory next to
 `docker-compose.yml` (a bind mount) — back that folder up and the instance moves with it.
 
+The container starts as root only to fix ownership of `./data`, then drops to `PUID:PGID`
+(default `1000:1000`). If the host user that owns your stack directory isn't uid 1000, set
+`PUID`/`PGID` in `.env` (`id -u` / `id -g`).
+
 Update to a newer image with:
 
 ```bash
@@ -58,6 +62,7 @@ then point `docker-compose.yml` at `image: selfdash:local`.
 | `APP_SECRET` | _(unset)_ | If set, encrypts stored integration credentials at rest (AES-256-GCM) |
 | `LOG_LEVEL` | `info` | Fastify/pino logger level |
 | `POLL_MIN_INTERVAL` | `15` | Safety floor (seconds) — no integration can be polled faster than this, regardless of its configured interval |
+| `PUID` / `PGID` | `1000` | uid/gid the container chowns `DATA_DIR` to and runs as (Docker only) |
 
 For `docker compose`, secrets live in a git-ignored `.env` file: `cp .env.example .env`,
 then generate a value with `openssl rand -hex 32` and set `APP_SECRET`. Compose loads it
