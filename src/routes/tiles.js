@@ -139,8 +139,10 @@ export default async function tilesRoutes(app) {
 function resolveTileFields(db, type, body, existing) {
   const existingConfig = existing ? JSON.parse(existing.config_json || '{}') : {};
   const rawConfig = body.config !== undefined ? body.config : existingConfig;
-  // group heading + per-tile appearance apply to every tile type.
-  const common = commonConfig({ ...existingConfig, ...(body.config || {}) });
+  // group heading + per-tile appearance apply to every tile type. When the caller
+  // sends `config` it is authoritative (so clearing the group/appearance sticks);
+  // when it omits `config` entirely we keep whatever was stored.
+  const common = commonConfig(body.config !== undefined ? body.config || {} : existingConfig);
 
   if (type === 'widget') {
     let integrationId = existing ? existing.integration_id : null;

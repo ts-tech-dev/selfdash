@@ -96,7 +96,10 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     }
 
     if (isPanel) {
-      onSave({ type, title, w, h, config: { ...form.panelConfig, ...commonConfig() } });
+      // Drop any stale group/appearance carried in panelConfig; commonConfig() is
+      // the single source of truth for those (empty = cleared).
+      const { group, appearance, ...panelOnly } = form.panelConfig;
+      onSave({ type, title, w, h, config: { ...panelOnly, ...commonConfig() } });
       return;
     }
 
