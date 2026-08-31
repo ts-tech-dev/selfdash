@@ -145,6 +145,25 @@ else:
 The enable flag and directory path live in `settings` (so they're covered by backup/restore);
 the compose files themselves are external and are not backed up.
 
+## Host resources tile
+
+The **Host resources** tile shows CPU, memory, one bar per configured **drive**, and one row
+per configured **network interface** (leave the interface list empty to auto-pick the busiest).
+
+Running in Docker it reads `/proc`. By default that's the *container's* `/proc`, which is fine
+for CPU/memory but shows only the container's own filesystem and `eth0`. To report the host:
+
+```yaml
+    volumes:
+      - /proc:/host/proc:ro                 # host CPU / memory / disk
+      - /mnt/media:/host/mnt/media:ro        # any extra drive you want in the tile
+    pid: host                               # host network interfaces (per-interface stats)
+```
+
+Then use the in-container paths (`/host/mnt/media`, …) in the tile's drive list. `pid: host`
+is only needed for real host network stats — `/proc/net/*` is network-namespace scoped, so the
+tile reads pid 1's view (`/host/proc/1/net/dev`) when the PID namespace is shared.
+
 ## Writing an integration
 
 Drop a file matching `*.integration.js` into `DATA_DIR/integrations/` (e.g.

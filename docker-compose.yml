@@ -29,7 +29,15 @@ services:
       # Compose scan dir. Defaults to a harmless empty /compose-stacks; if you don't
       # use the feature you can delete this line.
       - ${COMPOSE_SCAN_DIR:-/compose-stacks}:${COMPOSE_SCAN_DIR:-/compose-stacks}:ro
+      # For the "Host resources" tile: expose the host's /proc for CPU/mem/disk.
+      # - /proc:/host/proc:ro
+      # Add extra drives you want in the tile (use the /host/... path in Settings):
+      # - /mnt/media:/host/mnt/media:ro
     restart: unless-stopped
+    # The "Host resources" tile's per-interface network stats need the host PID
+    # namespace (it reads pid 1's netns via /host/proc/1/net/dev). Without this it
+    # only sees the container's own eth0. CPU/mem/disk don't need it.
+    # pid: host
     # Uncomment to cap resource usage:
     # mem_limit: 256m
     # cpus: 0.5

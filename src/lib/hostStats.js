@@ -47,9 +47,23 @@ async function readDisks(paths) {
   return results;
 }
 
+// /proc/net/* is network-namespace scoped, so a bind-mounted /host/proc still only
+// shows the container's interfaces. When the host PID namespace is shared
+// (`pid: host`), pid 1 lives in the host netns, so /host/proc/1/net/dev exposes the
+// real host interfaces. Prefer that, fall back to our own.
+async function readNetDev() {
+  try {
+    const t = await readFile(`${PROC}/1/net/dev`, 'utf8');
+    if (t.includes(':')) return t;
+  } catch {
+    /* pid ns not shared */
+  }
+  return readFile(`${PROC}/net/dev`, 'utf8');
+}
+
 // `wanted` = array of interface names; empty means "just the busiest one".
 async function readNets(wanted = []) {
-  const txt = await readFile(`${PROC}/net/dev`, 'utf8');
+  const txt = await readNetDev();
   const now = Date.now();
   const ifaces = {};
   for (const line of txt.split('\n')) {
