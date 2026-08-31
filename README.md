@@ -8,13 +8,23 @@ backup/restore.
 
 ## Quick start
 
+Grab [`docker-compose.yml`](docker-compose.yml) (it pulls the prebuilt
+[`tstech0806/selfdash`](https://hub.docker.com/r/tstech0806/selfdash) image — nothing is built
+locally) and run:
+
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 Then open `http://localhost:3000`. That's it — a "Home" page is created automatically on first
 boot. `docker compose down` stops it; your data stays in the `./data` directory next to
 `docker-compose.yml` (a bind mount) — back that folder up and the instance moves with it.
+
+Update to a newer image with:
+
+```bash
+docker compose pull && docker compose up -d
+```
 
 Prefer to run it without Docker for local development:
 
@@ -24,27 +34,20 @@ npm run build   # bundles the frontend into public/
 npm run dev     # Fastify with --watch, serves on :3000, data in ./data/
 ```
 
-### A note on this repo's Docker builds
+## Building from source
 
-In the environment this was built in, `docker build` under BuildKit reliably failed midway
-through `npm install` with `npm error Exit handler never called!`. The cause is the isolated
-BuildKit network namespace failing to reach the npm registry; giving the build the host
-network stack fixes it while keeping BuildKit:
+The image on Docker Hub is built from the `Dockerfile` in this repo. To build it yourself:
 
 ```bash
-docker build --network=host -t selfdash .
+docker build -t selfdash:local .
 ```
 
-For `docker compose`, either use the legacy (non-BuildKit) builder:
+then point `docker-compose.yml` at `image: selfdash:local`.
 
-```bash
-DOCKER_BUILDKIT=0 docker compose up -d --build
-```
-
-or add a `network: host` line under the `build:` key in `docker-compose.yml`.
-
-If your Docker setup doesn't hit this, plain `docker compose up -d --build` should work too —
-worth trying first.
+> **BuildKit note:** in some environments `docker build` fails partway through `npm install`
+> with `npm error Exit handler never called!` — the isolated BuildKit network namespace can't
+> reach the npm registry. Give the build the host network stack: `docker build --network=host
+> -t selfdash:local .` (or `DOCKER_BUILDKIT=0 docker build -t selfdash:local .`).
 
 ## Environment variables
 

@@ -1,7 +1,9 @@
 services:
   selfdash:
-    build: .
-    image: selfdash:local
+    # Prebuilt image from Docker Hub — nothing is built locally.
+    # Update with:  docker compose pull && docker compose up -d
+    # To build from source instead, see "Building from source" in the README.
+    image: tstech0806/selfdash:latest
     ports:
       - "${PORT:-3000}:3000"
     environment:
