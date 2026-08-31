@@ -1,0 +1,30 @@
+services:
+  selfdash:
+    build: .
+    image: selfdash:local
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+      - LOG_LEVEL=info
+      - POLL_MIN_INTERVAL=15
+    # APP_SECRET (encrypts stored integration credentials at rest) is read from .env —
+    # copy .env.example to .env and set it. See README "Environment variables".
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # SQLite DB + uploaded icons. Bind-mounted so the data lives in this stack
+      # directory (./data) rather than a Docker-managed named volume.
+      - ./data:/data
+      # For the "Docker Compose scan" feature: set COMPOSE_SCAN_DIR in .env to the
+      # absolute host directory holding your compose stacks. It is mounted read-only
+      # at the same path inside the container; put that same path in Settings →
+      # Compose scan dir. Defaults to a harmless empty /compose-stacks; if you don't
+      # use the feature you can delete this line.
+      - ${COMPOSE_SCAN_DIR:-/compose-stacks}:${COMPOSE_SCAN_DIR:-/compose-stacks}:ro
+    restart: unless-stopped
+    # Uncomment to cap resource usage:
+    # mem_limit: 256m
+    # cpus: 0.5

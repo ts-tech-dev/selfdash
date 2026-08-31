@@ -1,0 +1,9 @@
+node_modules/
+public/
+data/
+compose-stacks/
+*.log
+.env
+
+# Local build-planning / notes — not part of the app
+PLAN.md

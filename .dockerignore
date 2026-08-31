@@ -1,0 +1,8 @@
+node_modules
+public
+data
+*.log
+.env
+.git
+PLAN.md
+README.md
