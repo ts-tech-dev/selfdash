@@ -104,12 +104,20 @@ const PANEL_SANITIZERS = {
       path: str(m?.path, 300),
     })).filter((m) => m.label && m.path),
   }),
-  resources: (c) => ({
-    show: (Array.isArray(c.show) ? c.show : ['cpu', 'mem', 'disk'])
-      .filter((s) => ['cpu', 'mem', 'disk', 'net'].includes(s)),
-    diskPath: str(c.diskPath, 200) || '/',
-    netIface: str(c.netIface, 32),
-  }),
+  resources: (c) => {
+    // accept the old single `diskPath` and fold it into `diskPaths`
+    const paths = Array.isArray(c.diskPaths) ? c.diskPaths : c.diskPath ? [c.diskPath] : ['/'];
+    return {
+      show: (Array.isArray(c.show) ? c.show : ['cpu', 'mem', 'disk']).filter((s) =>
+        ['cpu', 'mem', 'disk', 'net'].includes(s)
+      ),
+      diskPaths: paths
+        .map((p) => str(p, 200))
+        .filter(Boolean)
+        .slice(0, 8),
+      netIface: str(c.netIface, 32),
+    };
+  },
 };
 
 // Fields valid on any tile regardless of type (group heading + per-tile appearance).

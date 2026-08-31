@@ -39,6 +39,14 @@ async function readDisk(path) {
   return { path: path || '/', total, used, percent: total ? (used / total) * 100 : 0 };
 }
 
+async function readDisks(paths) {
+  const list = (paths && paths.length ? paths : ['/']).slice(0, 8);
+  const results = await Promise.all(
+    list.map((p) => readDisk(p).catch((err) => ({ path: p, error: err.message })))
+  );
+  return results;
+}
+
 async function readNet(want) {
   const txt = await readFile(`${PROC}/net/dev`, 'utf8');
   const now = Date.now();
@@ -71,12 +79,13 @@ async function readNet(want) {
   return { iface, rxRate, txRate };
 }
 
-export async function hostStats({ diskPath = '/', iface = '' } = {}) {
-  const [cpu, mem, disk, net] = await Promise.all([
+export async function hostStats({ diskPaths = ['/'], iface = '' } = {}) {
+  const [cpu, mem, disks, net] = await Promise.all([
     readCpu().catch(() => null),
     readMem().catch(() => null),
-    readDisk(diskPath).catch(() => null),
+    readDisks(diskPaths).catch(() => []),
     readNet(iface).catch(() => null),
   ]);
-  return { source: PROC, cpu, mem, disk, net };
+  // `disk` kept as the first entry for backward compatibility.
+  return { source: PROC, cpu, mem, disk: disks[0] || null, disks, net };
 }

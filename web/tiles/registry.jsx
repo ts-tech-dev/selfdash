@@ -11,6 +11,7 @@ import { WeatherTile } from './WeatherTile.jsx';
 import { RssTile } from './RssTile.jsx';
 import { CalendarTile } from './CalendarTile.jsx';
 import { ResourcesTile } from './ResourcesTile.jsx';
+import { ResourcesConfig } from './ResourcesConfig.jsx';
 import { CustomApiTile } from './CustomApiTile.jsx';
 import { CustomApiConfig } from './CustomApiConfig.jsx';
 
@@ -103,14 +104,8 @@ export const TILE_REGISTRY = {
   resources: {
     label: 'Host resources',
     category: 'Data',
-    defaults: { w: 2, h: 1, config: { show: ['cpu', 'mem', 'disk'], diskPath: '/' } },
-    fields: [
-      { name: 'show', label: 'Show', type: 'multiselect', options: [
-        { value: 'cpu', label: 'CPU' }, { value: 'mem', label: 'Memory' },
-        { value: 'disk', label: 'Disk' }, { value: 'net', label: 'Network' } ] },
-      { name: 'diskPath', label: 'Disk path', type: 'text' },
-      { name: 'netIface', label: 'Network interface (blank = busiest)', type: 'text' },
-    ],
+    defaults: { w: 2, h: 2, config: { show: ['cpu', 'mem', 'disk'], diskPaths: ['/'] } },
+    ConfigForm: ResourcesConfig,
     Component: ResourcesTile,
   },
 
