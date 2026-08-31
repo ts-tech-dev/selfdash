@@ -2,6 +2,7 @@ import { integrations, tileHealth } from '../store.js';
 import { WidgetTile } from './WidgetTile.jsx';
 import { registryEntry } from '../tiles/registry.jsx';
 import { resolveIcon } from '../tiles/icons.js';
+import { t } from '../i18n.js';
 
 function HealthDot({ state, label }) {
   return <span class={`tile-health tile-health-${state}`} title={label} aria-label={label} />;
@@ -54,7 +55,7 @@ export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride })
   );
   const editButton = editing && (
     <button class="tile-edit-btn" onClick={onEdit}>
-      Edit
+      {t('tile.edit')}
     </button>
   );
   const resizeHandle = editing && (

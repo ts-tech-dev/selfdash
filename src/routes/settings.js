@@ -7,6 +7,7 @@ const DEFAULTS = {
   dark_mode: 'system',
   accent: '#5b8def',
   font_family: '',
+  locale: 'en',
   custom_css: '',
   custom_js: '',
   custom_js_enabled: false,
@@ -51,6 +52,10 @@ export default async function settingsRoutes(app) {
     if (body.font_family !== undefined) {
       if (!FONTS.has(body.font_family)) return reply.code(400).send({ error: `font_family must be one of ${[...FONTS].join(', ')}` });
       next.font_family = body.font_family;
+    }
+    if (body.locale !== undefined) {
+      if (!/^[a-z]{2}(-[a-z]{2})?$/i.test(body.locale)) return reply.code(400).send({ error: 'locale must be a language code like "en"' });
+      next.locale = body.locale;
     }
     if (body.custom_css !== undefined) {
       next.custom_css = String(body.custom_css || '').slice(0, MAX_CUSTOM);

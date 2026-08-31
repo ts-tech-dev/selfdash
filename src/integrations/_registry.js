@@ -1,6 +1,8 @@
-import { readdirSync, mkdirSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { parse as parseYaml } from 'yaml';
+import { yamlIntegrationClass } from './_yamlLoader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -27,17 +29,26 @@ async function loadDir(dir, registry) {
   }
 
   for (const file of files) {
-    if (!file.endsWith('.integration.js')) continue;
-    try {
-      const mod = await import(pathToFileURL(join(dir, file)).href);
-      const IntegrationClass = mod.default;
-      if (!IntegrationClass?.key) {
-        console.warn(`skipping ${file}: default export missing a static "key"`);
-        continue;
+    if (file.endsWith('.integration.js')) {
+      try {
+        const mod = await import(pathToFileURL(join(dir, file)).href);
+        const IntegrationClass = mod.default;
+        if (!IntegrationClass?.key) {
+          console.warn(`skipping ${file}: default export missing a static "key"`);
+          continue;
+        }
+        registry.set(IntegrationClass.key, IntegrationClass);
+      } catch (err) {
+        console.warn(`failed to load integration ${file}: ${err.message}`);
       }
-      registry.set(IntegrationClass.key, IntegrationClass);
-    } catch (err) {
-      console.warn(`failed to load integration ${file}: ${err.message}`);
+    } else if (file.endsWith('.integration.yaml') || file.endsWith('.integration.yml')) {
+      try {
+        const spec = parseYaml(readFileSync(join(dir, file), 'utf8'));
+        const IntegrationClass = yamlIntegrationClass(spec);
+        registry.set(IntegrationClass.key, IntegrationClass);
+      } catch (err) {
+        console.warn(`failed to load yaml integration ${file}: ${err.message}`);
+      }
     }
   }
 }

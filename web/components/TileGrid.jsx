@@ -3,6 +3,7 @@ import Sortable from 'sortablejs';
 import { tiles, addTile, editTile, removeTile, reorderTiles, refreshTileHealth } from '../store.js';
 import { TileCard } from './TileCard.jsx';
 import { TileModal } from './TileModal.jsx';
+import { t } from '../i18n.js';
 
 const DEFAULT_ROW_HEIGHT = 96;
 const MAX_H = 6;
@@ -185,7 +186,7 @@ export function TileGrid({ page }) {
     <section class="tile-section">
       <div class="tile-section-bar">
         <button class={`page-edit-btn${editing ? ' active' : ''}`} onClick={() => setEditing((v) => !v)}>
-          {editing ? 'Done' : 'Edit page'}
+          {editing ? t('page.done') : t('page.edit')}
         </button>
       </div>
 
@@ -219,7 +220,7 @@ export function TileGrid({ page }) {
 
       {editing && (
         <button class="add-tile-btn" onClick={() => setModalTile(null)}>
-          + Add tile
+          {t('page.addTile')}
         </button>
       )}
 

@@ -13,6 +13,7 @@ export const settings = signal({
   dark_mode: 'system',
   accent: '#5b8def',
   font_family: '',
+  locale: 'en',
   custom_css: '',
   custom_js: '',
   custom_js_enabled: false,

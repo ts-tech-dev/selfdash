@@ -10,6 +10,7 @@ import {
   loadAvailableIntegrations,
 } from '../store.js';
 import { applyAppearance } from '../appearance.js';
+import { t, setLocale } from '../i18n.js';
 import { PageTabs } from './PageTabs.jsx';
 import { TileGrid } from './TileGrid.jsx';
 import { SettingsView } from './SettingsView.jsx';
@@ -32,6 +33,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    setLocale(currentSettings.locale || 'en');
     applyAppearance(currentSettings, currentPage);
     if (currentSettings.dark_mode !== 'system') return undefined;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -48,10 +50,10 @@ export function App() {
         <h1>{currentSettings.site_title}</h1>
         <nav class="view-tabs">
           <button class={`view-tab${view === 'dashboard' ? ' active' : ''}`} onClick={() => setView('dashboard')}>
-            Dashboard
+            {t('nav.dashboard')}
           </button>
           <button class={`view-tab${view === 'settings' ? ' active' : ''}`} onClick={() => setView('settings')}>
-            Settings
+            {t('nav.settings')}
           </button>
         </nav>
       </header>
@@ -61,7 +63,7 @@ export function App() {
         <>
           <PageTabs />
           {currentPage && <TileGrid page={currentPage} />}
-          {!loading.value && !currentPage && <p class="empty-state">No pages yet. Add one to get started.</p>}
+          {!loading.value && !currentPage && <p class="empty-state">{t('empty.noPages')}</p>}
           <ComposeScanPanel pageId={currentPage?.id} />
         </>
       ) : (

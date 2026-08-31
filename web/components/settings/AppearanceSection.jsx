@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { settings, updateSettings } from '../../store.js';
 import { api } from '../../api.js';
+import { LOCALES, t } from '../../i18n.js';
 
 const THEMES = ['minimal', 'glass', 'terminal', 'gradient', 'nord', 'rosepine'];
 const MODES = ['system', 'light', 'dark'];
@@ -95,6 +96,16 @@ export function AppearanceSection() {
               {FONTS.map((f) => (
                 <option key={f.value} value={f.value}>
                   {f.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t('settings.language')}
+            <select value={form.locale || 'en'} onChange={(e) => update('locale', e.target.value)}>
+              {LOCALES.map((l) => (
+                <option key={l} value={l}>
+                  {l}
                 </option>
               ))}
             </select>

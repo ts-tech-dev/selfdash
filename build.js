@@ -6,6 +6,9 @@ mkdirSync('public', { recursive: true });
 
 cpSync('web/index.html', 'public/index.html');
 cpSync('web/style.css', 'public/style.css');
+cpSync('web/manifest.webmanifest', 'public/manifest.webmanifest');
+cpSync('web/sw.js', 'public/sw.js');
+cpSync('web/icon.svg', 'public/icon.svg');
 
 await esbuild.build({
   entryPoints: ['web/app.jsx'],
