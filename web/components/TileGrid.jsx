@@ -185,6 +185,11 @@ export function TileGrid({ page }) {
   return (
     <section class="tile-section">
       <div class="tile-section-bar">
+        {editing && (
+          <button class="add-tile-btn add-tile-btn-inline" onClick={() => setModalTile(null)}>
+            {t('page.addTile')}
+          </button>
+        )}
         <button class={`page-edit-btn${editing ? ' active' : ''}`} onClick={() => setEditing((v) => !v)}>
           {editing ? t('page.done') : t('page.edit')}
         </button>
@@ -217,12 +222,6 @@ export function TileGrid({ page }) {
               return rows;
             })}
       </div>
-
-      {editing && (
-        <button class="add-tile-btn" onClick={() => setModalTile(null)}>
-          {t('page.addTile')}
-        </button>
-      )}
 
       {modalTile !== undefined && (
         <TileModal

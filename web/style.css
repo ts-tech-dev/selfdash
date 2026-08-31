@@ -461,11 +461,23 @@ body[data-has-bg]::before {
   padding: 10px 16px;
 }
 
-/* Page-wide edit toggle: sits above the grid and reveals the per-tile controls. */
+/* Page-wide edit toggle + Add tile: sits above the grid, always at the top. */
 .tile-section-bar {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   margin-bottom: 10px;
+}
+
+.add-tile-btn-inline {
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+.add-tile-btn-inline:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
 }
 
 .page-edit-btn {
@@ -1578,6 +1590,56 @@ body[data-has-bg]::before {
 }
 
 /* --- Notes / Markdown --- */
+.tile-notes {
+  position: relative;
+}
+.tile-notes-edit {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.tile-panel-card:hover .tile-notes-edit,
+.tile-notes:focus-within .tile-notes-edit {
+  opacity: 1;
+}
+.tile-notes-edit:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.tile-notes-hint {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin: auto;
+  text-align: center;
+}
+.tile-notes-editing {
+  padding: 0;
+}
+.tile-notes-editing textarea {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  padding: 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+}
 .tile-markdown {
   display: block;
   font-size: 0.85rem;
