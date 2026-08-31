@@ -108,6 +108,23 @@ Settings → **Backup & restore**:
   sequence (migrations, integration registry, poller — all re-initialized fresh, same as any
   other container start).
 
+### Configuration as YAML
+
+Alongside the `.zip`, Settings → **Backup & restore** has **Export config (.yaml)** — a
+human-readable snapshot of pages, tiles, integrations, and settings (no uploaded images).
+It's for version control: commit it, `git diff` it, share it, reproduce an instance from it.
+
+- Secrets (`password`-type fields — API keys, tokens) are written as
+  `${SELFDASH_SECRET_<REF>_<FIELD>}` placeholders, never the real value.
+- **Import config** replaces all pages/tiles/integrations/settings in one transaction
+  (rolled back on any structural error; uploaded images untouched). Secret placeholders are
+  read from the container's environment; anything unset imports blank and is reported so you
+  can fill it in (Settings → Integrations) or add the env var and re-import. Widget tiles
+  reference integrations by a stable `ref`, so ids don't have to line up.
+- Also available over HTTP: `GET /api/config/export`, `POST /api/config/import` (a `.yaml`
+  file upload, or a raw body with `Content-Type: application/yaml`; add `?settings=0` to
+  leave settings alone).
+
 ## Docker Compose scan
 
 Settings → **Docker Compose scan**. Point selfdash at a directory that contains one or more

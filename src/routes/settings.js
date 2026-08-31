@@ -1,6 +1,6 @@
 import { invalidateComposeScanCache } from './composeScan.js';
 
-const DEFAULTS = {
+export const DEFAULTS = {
   site_title: 'selfdash',
   favicon: null,
   theme: 'minimal',

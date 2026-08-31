@@ -1,13 +1,4 @@
-import {
-  TILE_TYPES,
-  PANEL_TYPES,
-  buildIframeConfig,
-  sanitizeTileConfig,
-  commonConfig,
-  URL_RE,
-} from '../shared/tileConfig.js';
-
-const OPEN_MODES = new Set(['newtab', 'same', 'iframe']);
+import { TILE_TYPES, resolveTileFields, clampInt } from '../shared/tileConfig.js';
 
 export default async function tilesRoutes(app) {
   const db = app.db;
@@ -35,8 +26,8 @@ export default async function tilesRoutes(app) {
       return reply.code(400).send({ error: err.message });
     }
 
-    const w = clamp(Number(body.w) || 2, 1, 6);
-    const h = clamp(Number(body.h) || 1, 1, 6);
+    const w = clampInt(Number(body.w) || 2, 1, 6);
+    const h = clampInt(Number(body.h) || 1, 1, 6);
     const maxPos = db
       .prepare('SELECT COALESCE(MAX(position), -1) AS m FROM tiles WHERE page_id = ?')
       .get(pageId).m;
@@ -83,8 +74,8 @@ export default async function tilesRoutes(app) {
       title: body.title !== undefined ? body.title : existing.title,
       icon: body.icon !== undefined ? body.icon : existing.icon,
       description: body.description !== undefined ? body.description : existing.description,
-      w: body.w !== undefined ? clamp(Number(body.w), 1, 6) : existing.w,
-      h: body.h !== undefined ? clamp(Number(body.h), 1, 6) : existing.h,
+      w: body.w !== undefined ? clampInt(Number(body.w), 1, 6) : existing.w,
+      h: body.h !== undefined ? clampInt(Number(body.h), 1, 6) : existing.h,
     };
 
     db.prepare(
@@ -132,52 +123,6 @@ export default async function tilesRoutes(app) {
     }
     return { ok: true };
   });
-}
-
-// Works out { url, open_mode, integration_id, config } for a given tile type from the
-// request body, falling back to `existing` (a DB row) for fields the caller omitted.
-function resolveTileFields(db, type, body, existing) {
-  const existingConfig = existing ? JSON.parse(existing.config_json || '{}') : {};
-  const rawConfig = body.config !== undefined ? body.config : existingConfig;
-  // group heading + per-tile appearance apply to every tile type. When the caller
-  // sends `config` it is authoritative (so clearing the group/appearance sticks);
-  // when it omits `config` entirely we keep whatever was stored.
-  const common = commonConfig(body.config !== undefined ? body.config || {} : existingConfig);
-
-  if (type === 'widget') {
-    let integrationId = existing ? existing.integration_id : null;
-    if (body.integration_id !== undefined) integrationId = Number(body.integration_id);
-    const integration = integrationId
-      ? db.prepare('SELECT id FROM integrations WHERE id = ?').get(integrationId)
-      : null;
-    if (!integration) throw new Error('integration_id must reference an existing integration');
-    return { url: null, open_mode: 'newtab', integration_id: integrationId, config: common };
-  }
-
-  if (PANEL_TYPES.has(type)) {
-    return { url: null, open_mode: 'newtab', integration_id: null, config: sanitizeTileConfig(type, rawConfig) };
-  }
-
-  // link (incl. iframe open mode)
-  let url = existing ? existing.url : null;
-  if (body.url !== undefined) {
-    if (!URL_RE.test(body.url)) throw new Error('url must start with http:// or https://');
-    url = body.url;
-  }
-  if (!url) throw new Error('url is required and must start with http:// or https://');
-
-  const open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : existing?.open_mode || 'newtab';
-  const config = open_mode === 'iframe' ? { ...buildIframeConfig(rawConfig), ...common } : common;
-  return { url, open_mode, integration_id: null, config };
-}
-
-function clamp(n, min, max) {
-  if (Number.isNaN(n)) return min;
-  return Math.min(max, Math.max(min, n));
-}
-
-function normalizeOpenMode(value) {
-  return OPEN_MODES.has(value) ? value : 'newtab';
 }
 
 function mapTile(row) {

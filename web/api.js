@@ -57,11 +57,23 @@ export const api = {
   },
 
   exportBackupUrl: `${BASE}/backup/export`,
+  exportConfigUrl: `${BASE}/config/export`,
 
   async importBackup(file) {
     const form = new FormData();
     form.append('file', file);
     const res = await fetch(`${BASE}/backup/import`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async importConfig(file) {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${BASE}/config/import`, { method: 'POST', body: form });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || `${res.status} ${res.statusText}`);
