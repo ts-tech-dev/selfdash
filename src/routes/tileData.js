@@ -100,14 +100,16 @@ export default async function tileDataRoutes(app) {
   });
 
   app.get('/api/host/stats', async (req, reply) => {
-    const raw = req.query?.disks || req.query?.disk || '/';
-    const diskPaths = String(raw)
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 8);
+    const csv = (v, max) =>
+      String(v || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, max);
+    const diskPaths = csv(req.query?.disks || req.query?.disk || '/', 8);
+    const ifaces = csv(req.query?.ifaces || req.query?.iface || '', 8);
     try {
-      return await hostStats({ diskPaths: diskPaths.length ? diskPaths : ['/'], iface: req.query?.iface || '' });
+      return await hostStats({ diskPaths: diskPaths.length ? diskPaths : ['/'], ifaces });
     } catch (err) {
       return reply.code(500).send({ error: `host stats unavailable: ${err.message}` });
     }

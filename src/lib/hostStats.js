@@ -47,7 +47,8 @@ async function readDisks(paths) {
   return results;
 }
 
-async function readNet(want) {
+// `wanted` = array of interface names; empty means "just the busiest one".
+async function readNets(wanted = []) {
   const txt = await readFile(`${PROC}/net/dev`, 'utf8');
   const now = Date.now();
   const ifaces = {};
@@ -58,34 +59,51 @@ async function readNet(want) {
     if (name === 'lo') continue;
     ifaces[name] = { rx: Number(m[2]), tx: Number(m[3]) };
   }
+  const names = Object.keys(ifaces).sort();
 
-  let iface = want && ifaces[want] ? want : null;
-  if (!iface) {
-    // busiest by total bytes
-    iface = Object.entries(ifaces).sort((a, b) => b[1].rx + b[1].tx - a[1].rx - a[1].tx)[0]?.[0];
+  let picks = wanted.filter(Boolean);
+  if (!picks.length) {
+    const busiest = Object.entries(ifaces).sort(
+      (a, b) => b[1].rx + b[1].tx - a[1].rx - a[1].tx
+    )[0]?.[0];
+    picks = busiest ? [busiest] : [];
   }
-  if (!iface) return null;
 
-  let rxRate = 0;
-  let txRate = 0;
-  if (lastNet && lastNet[iface] && lastNet.t) {
-    const secs = (now - lastNet.t) / 1000;
-    if (secs > 0) {
-      rxRate = Math.max(0, (ifaces[iface].rx - lastNet[iface].rx) / secs);
-      txRate = Math.max(0, (ifaces[iface].tx - lastNet[iface].tx) / secs);
+  const rateFor = (iface) => {
+    if (!ifaces[iface]) return { iface, error: 'no such interface' };
+    let rxRate = 0;
+    let txRate = 0;
+    if (lastNet && lastNet[iface] && lastNet.t) {
+      const secs = (now - lastNet.t) / 1000;
+      if (secs > 0) {
+        rxRate = Math.max(0, (ifaces[iface].rx - lastNet[iface].rx) / secs);
+        txRate = Math.max(0, (ifaces[iface].tx - lastNet[iface].tx) / secs);
+      }
     }
-  }
+    return { iface, rxRate, txRate };
+  };
+
+  const nets = picks.map(rateFor);
   lastNet = { ...ifaces, t: now };
-  return { iface, rxRate, txRate };
+  return { nets, names };
 }
 
-export async function hostStats({ diskPaths = ['/'], iface = '' } = {}) {
-  const [cpu, mem, disks, net] = await Promise.all([
+export async function hostStats({ diskPaths = ['/'], ifaces = [] } = {}) {
+  const [cpu, mem, disks, netResult] = await Promise.all([
     readCpu().catch(() => null),
     readMem().catch(() => null),
     readDisks(diskPaths).catch(() => []),
-    readNet(iface).catch(() => null),
+    readNets(ifaces).catch(() => ({ nets: [], names: [] })),
   ]);
-  // `disk` kept as the first entry for backward compatibility.
-  return { source: PROC, cpu, mem, disk: disks[0] || null, disks, net };
+  // `disk` / `net` kept as the first entry for backward compatibility.
+  return {
+    source: PROC,
+    cpu,
+    mem,
+    disk: disks[0] || null,
+    disks,
+    net: netResult.nets[0] || null,
+    nets: netResult.nets,
+    netInterfaces: netResult.names,
+  };
 }

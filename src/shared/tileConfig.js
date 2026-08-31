@@ -105,8 +105,9 @@ const PANEL_SANITIZERS = {
     })).filter((m) => m.label && m.path),
   }),
   resources: (c) => {
-    // accept the old single `diskPath` and fold it into `diskPaths`
+    // accept the old single `diskPath` / `netIface` and fold them into arrays
     const paths = Array.isArray(c.diskPaths) ? c.diskPaths : c.diskPath ? [c.diskPath] : ['/'];
+    const ifaces = Array.isArray(c.netIfaces) ? c.netIfaces : c.netIface ? [c.netIface] : [];
     return {
       show: (Array.isArray(c.show) ? c.show : ['cpu', 'mem', 'disk']).filter((s) =>
         ['cpu', 'mem', 'disk', 'net'].includes(s)
@@ -115,7 +116,10 @@ const PANEL_SANITIZERS = {
         .map((p) => str(p, 200))
         .filter(Boolean)
         .slice(0, 8),
-      netIface: str(c.netIface, 32),
+      netIfaces: ifaces
+        .map((p) => str(p, 32))
+        .filter(Boolean)
+        .slice(0, 8),
     };
   },
 };
