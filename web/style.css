@@ -14,12 +14,29 @@
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family: var(--app-font, system-ui, sans-serif);
   background-color: var(--bg);
-  background-size: cover;
-  background-position: center;
   color: var(--text);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Page background image lives on a fixed pseudo-element so it can be blurred/dimmed
+   independently of page content (see appearance.js for the --page-bg-* vars). */
+body[data-has-bg]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--page-bg-url, none);
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--page-bg-blur, 0)) brightness(var(--page-bg-dim, 1));
+  opacity: var(--page-bg-opacity, 1);
+}
+
+/* A chosen font (--app-font) wins everywhere, including over the terminal theme. */
+[data-theme='terminal'] body {
+  font-family: var(--app-font, 'Courier New', ui-monospace, SFMono-Regular, monospace);
 }
 
 /* Theme: minimal (default) */
@@ -1833,3 +1850,129 @@ body {
   padding: 4px 0;
 }
 .modal-disclosure:hover { color: var(--text); }
+
+/* Theme: nord */
+[data-theme='nord'][data-mode='dark'] {
+  --bg: #2e3440; --surface: #3b4252; --border: #434c5e; --text: #eceff4; --text-dim: #8fbcbb;
+}
+[data-theme='nord'][data-mode='light'] {
+  --bg: #eceff4; --surface: #ffffff; --border: #d8dee9; --text: #2e3440; --text-dim: #4c566a;
+}
+
+/* Theme: rosepine */
+[data-theme='rosepine'][data-mode='dark'] {
+  --bg: #232136; --surface: #2a273f; --border: #44415a; --text: #e0def4; --text-dim: #908caa;
+}
+[data-theme='rosepine'][data-mode='light'] {
+  --bg: #faf4ed; --surface: #fffaf3; --border: #f2e9e1; --text: #575279; --text-dim: #797593;
+}
+
+/* --- Named tile groups --- */
+.tile-group-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 2px 6px;
+  text-align: left;
+}
+.tile-group-header:hover { color: var(--text); }
+.tile-group-header .tile-group-caret {
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+}
+.tile-group-header[data-collapsed] .tile-group-caret { transform: rotate(-90deg); }
+.tile-group-header .tile-group-count {
+  margin-left: auto;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* --- Phase 3: settings/pages layout & icon picker --- */
+.settings-row-block {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.settings-row-block .settings-row-fields {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.page-row-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.page-row-options fieldset legend {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0 4px;
+}
+.page-row-options input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.page-row-options textarea,
+.settings-form textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.icon-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.icon-picker-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.icon-picker-row input {
+  flex: 1;
+  min-width: 0;
+}
+.icon-picker-preview {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.icon-picker-empty {
+  display: inline-block;
+}
+.icon-picker-upload {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.icon-picker .settings-hint code {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 3px;
+}

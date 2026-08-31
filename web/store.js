@@ -12,6 +12,10 @@ export const settings = signal({
   theme: 'minimal',
   dark_mode: 'system',
   accent: '#5b8def',
+  font_family: '',
+  custom_css: '',
+  custom_js: '',
+  custom_js_enabled: false,
   global_background: null,
   compose_scan_enabled: false,
   compose_scan_dir: null,
@@ -60,6 +64,11 @@ export async function renamePage(id, name) {
 
 export async function setPageBackground(id, background) {
   await api.updatePage(id, { background });
+  await loadPages();
+}
+
+export async function updatePageOptions(id, options) {
+  await api.updatePage(id, { options });
   await loadPages();
 }
 

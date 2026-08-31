@@ -3,6 +3,7 @@ import {
   PANEL_TYPES,
   buildIframeConfig,
   sanitizeTileConfig,
+  commonConfig,
   URL_RE,
 } from '../shared/tileConfig.js';
 
@@ -137,6 +138,9 @@ export default async function tilesRoutes(app) {
 // request body, falling back to `existing` (a DB row) for fields the caller omitted.
 function resolveTileFields(db, type, body, existing) {
   const existingConfig = existing ? JSON.parse(existing.config_json || '{}') : {};
+  const rawConfig = body.config !== undefined ? body.config : existingConfig;
+  // group heading + per-tile appearance apply to every tile type.
+  const common = commonConfig({ ...existingConfig, ...(body.config || {}) });
 
   if (type === 'widget') {
     let integrationId = existing ? existing.integration_id : null;
@@ -145,12 +149,11 @@ function resolveTileFields(db, type, body, existing) {
       ? db.prepare('SELECT id FROM integrations WHERE id = ?').get(integrationId)
       : null;
     if (!integration) throw new Error('integration_id must reference an existing integration');
-    return { url: null, open_mode: 'newtab', integration_id: integrationId, config: {} };
+    return { url: null, open_mode: 'newtab', integration_id: integrationId, config: common };
   }
 
   if (PANEL_TYPES.has(type)) {
-    const raw = body.config !== undefined ? body.config : existingConfig;
-    return { url: null, open_mode: 'newtab', integration_id: null, config: sanitizeTileConfig(type, raw) };
+    return { url: null, open_mode: 'newtab', integration_id: null, config: sanitizeTileConfig(type, rawConfig) };
   }
 
   // link (incl. iframe open mode)
@@ -162,8 +165,7 @@ function resolveTileFields(db, type, body, existing) {
   if (!url) throw new Error('url is required and must start with http:// or https://');
 
   const open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : existing?.open_mode || 'newtab';
-  const configSource = body.config !== undefined ? body.config : existingConfig;
-  const config = open_mode === 'iframe' ? buildIframeConfig(configSource) : {};
+  const config = open_mode === 'iframe' ? { ...buildIframeConfig(rawConfig), ...common } : common;
   return { url, open_mode, integration_id: null, config };
 }
 

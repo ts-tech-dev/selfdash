@@ -1,6 +1,7 @@
 import { integrations, tileHealth } from '../store.js';
 import { WidgetTile } from './WidgetTile.jsx';
 import { registryEntry } from '../tiles/registry.jsx';
+import { resolveIcon } from '../tiles/icons.js';
 
 function HealthDot({ state, label }) {
   return <span class={`tile-health tile-health-${state}`} title={label} aria-label={label} />;
@@ -136,7 +137,7 @@ export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride })
         target={target}
         rel={target ? 'noopener noreferrer' : undefined}
       >
-        {tile.icon && <img class="tile-icon" src={tile.icon} alt="" />}
+        {tile.icon && <img class="tile-icon" src={resolveIcon(tile.icon)} alt="" />}
         {!hideTitle && <span class="tile-title">{tile.title || tile.url}</span>}
         {tile.description && <span class="tile-desc">{tile.description}</span>}
       </a>

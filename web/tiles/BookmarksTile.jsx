@@ -1,3 +1,5 @@
+import { resolveIcon } from './icons.js';
+
 export function BookmarksTile({ tile }) {
   const c = tile.config || {};
   const links = Array.isArray(c.links) ? c.links : [];
@@ -14,7 +16,7 @@ export function BookmarksTile({ tile }) {
           <li key={i}>
             <a href={l.url} target="_blank" rel="noopener noreferrer">
               {l.icon ? (
-                <img src={l.icon} alt="" loading="lazy" />
+                <img src={resolveIcon(l.icon)} alt="" loading="lazy" />
               ) : (
                 <span class="tile-bookmark-dot" aria-hidden="true" />
               )}

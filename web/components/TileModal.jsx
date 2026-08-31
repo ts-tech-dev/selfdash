@@ -3,6 +3,7 @@ import { SIZE_PRESETS, sizeKeyFromWH } from '../../src/shared/tileSizes.js';
 import { api } from '../api.js';
 import { integrations } from '../store.js';
 import { DynamicConfigForm } from './DynamicConfigForm.jsx';
+import { IconPicker } from './IconPicker.jsx';
 import { TILE_REGISTRY, registryEntry } from '../tiles/registry.jsx';
 
 const ASPECT_RATIOS = ['16/9', '4/3', '1/1', '21/9'];
@@ -70,20 +71,6 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     setType(next);
     const entry = registryEntry(next);
     if (entry) setForm((f) => ({ ...f, panelConfig: { ...entry.defaults.config } }));
-  }
-
-  async function onIconFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const { url } = await api.upload(file);
-      update('icon', url);
-    } catch (err) {
-      alert(`Upload failed: ${err.message}`);
-    } finally {
-      setUploading(false);
-    }
   }
 
   function commonConfig() {
@@ -193,14 +180,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
                 placeholder="https://example.com"
               />
             </label>
-            <label>
-              Icon URL
-              <input value={form.icon} onInput={(e) => update('icon', e.target.value)} />
-            </label>
-            <label>
-              Or upload an icon
-              <input type="file" accept="image/*" onChange={onIconFile} disabled={uploading} />
-            </label>
+            <IconPicker value={form.icon} onChange={(v) => update('icon', v)} />
             <label>
               Description
               <input value={form.description} onInput={(e) => update('description', e.target.value)} />

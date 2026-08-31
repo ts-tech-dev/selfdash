@@ -112,8 +112,8 @@ const PANEL_SANITIZERS = {
   }),
 };
 
-// Fields valid on any tile regardless of type.
-function commonConfig(raw) {
+// Fields valid on any tile regardless of type (group heading + per-tile appearance).
+export function commonConfig(raw) {
   const out = {};
   if (typeof raw?.group === 'string' && raw.group.trim()) out.group = raw.group.trim().slice(0, 60);
   const a = raw?.appearance;

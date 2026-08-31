@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
 import { tiles, addTile, editTile, removeTile, reorderTiles, refreshTileHealth } from '../store.js';
 import { TileCard } from './TileCard.jsx';
 import { TileModal } from './TileModal.jsx';
 
-const ROW_HEIGHT = 96; // keep in sync with .tile-grid's grid-auto-rows in style.css
+const DEFAULT_ROW_HEIGHT = 96;
 const MAX_H = 6;
 const HEALTH_POLL_MS = 30_000;
 
@@ -12,34 +12,54 @@ function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
+function loadCollapsed(pageId) {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(`selfdash:groups:${pageId}`) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
 export function TileGrid({ page }) {
   const gridRef = useRef(null);
   const sortableRef = useRef(null);
-  const [editing, setEditing] = useState(false); // page-wide edit mode: reveals per-tile controls
-  const [modalTile, setModalTile] = useState(undefined); // undefined = closed, null = new, object = edit
-  const [resizing, setResizing] = useState(null); // { id, w, h } while a resize drag is in progress
+  const [editing, setEditing] = useState(false);
+  const [modalTile, setModalTile] = useState(undefined);
+  const [resizing, setResizing] = useState(null);
+  const [collapsed, setCollapsed] = useState(() => loadCollapsed(page.id));
+
+  const gridOpts = page.options?.grid || {};
+  const columns = gridOpts.columns || 6;
+  const gap = gridOpts.gap ?? 14;
+  const rowHeight = gridOpts.rowHeight || DEFAULT_ROW_HEIGHT;
+
+  const gridStyle = {
+    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+    gridAutoRows: `${rowHeight}px`,
+    gap: `${gap}px`,
+  };
+
+  useEffect(() => {
+    setCollapsed(loadCollapsed(page.id));
+  }, [page.id]);
 
   useEffect(() => {
     if (!gridRef.current) return;
     sortableRef.current = new Sortable(gridRef.current, {
       animation: 150,
       handle: '.tile-drag-handle',
+      draggable: '.tile',
       disabled: !editing,
-      onEnd: () => {
-        const ids = Array.from(gridRef.current.children).map((el) => Number(el.dataset.id));
-        reorderTiles(ids);
-      },
+      onEnd: onDragEnd,
     });
     return () => sortableRef.current?.destroy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page.id]);
 
-  // Reordering is only possible in edit mode (the drag handles are hidden otherwise).
   useEffect(() => {
     sortableRef.current?.option('disabled', !editing);
   }, [editing]);
 
-  // Ping the URL-backed tiles (link / iframe) so each one gets an online/offline dot.
-  // Widget tiles derive their dot from the integration poller instead.
   const healthUrls = tiles.value.filter((t) => t.url).map((t) => t.url).join(',');
   useEffect(() => {
     if (!healthUrls) return undefined;
@@ -48,6 +68,63 @@ export function TileGrid({ page }) {
     const timer = setInterval(() => refreshTileHealth(urls), HEALTH_POLL_MS);
     return () => clearInterval(timer);
   }, [healthUrls]);
+
+  // Group tiles by config.group; ungrouped first (no header), then groups in first-seen order.
+  const groups = useMemo(() => {
+    const order = [];
+    const byGroup = new Map();
+    for (const t of tiles.value) {
+      const g = t.config?.group || '';
+      if (!byGroup.has(g)) {
+        byGroup.set(g, []);
+        order.push(g);
+      }
+      byGroup.get(g).push(t);
+    }
+    order.sort((a, b) => (a === '' ? -1 : b === '' ? 1 : 0));
+    return order.map((g) => ({ name: g, tiles: byGroup.get(g) }));
+  }, [tiles.value]);
+
+  const hasGroups = groups.some((g) => g.name !== '');
+
+  async function onDragEnd() {
+    const children = Array.from(gridRef.current.children);
+    const byId = new Map(tiles.value.map((t) => [t.id, t]));
+    let curGroup = '';
+    const order = [];
+    const moves = [];
+    for (const el of children) {
+      if (el.classList.contains('tile-group-header')) {
+        curGroup = el.dataset.group || '';
+        continue;
+      }
+      const id = Number(el.dataset.id);
+      if (!id) continue;
+      order.push(id);
+      const t = byId.get(id);
+      if (t && (t.config?.group || '') !== curGroup) moves.push({ t, group: curGroup });
+    }
+    await reorderTiles(order);
+    for (const m of moves) {
+      const cfg = { ...m.t.config };
+      if (m.group) cfg.group = m.group;
+      else delete cfg.group;
+      await editTile(m.t.id, { config: cfg });
+    }
+  }
+
+  function toggleGroup(name) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      try {
+        localStorage.setItem(`selfdash:groups:${page.id}`, JSON.stringify([...next]));
+      } catch {
+        /* private mode */
+      }
+      return next;
+    });
+  }
 
   function startResize(tile, e) {
     e.preventDefault();
@@ -58,8 +135,8 @@ export function TileGrid({ page }) {
     const rect = gridEl.getBoundingClientRect();
     const cs = getComputedStyle(gridEl);
     const numCols = cs.gridTemplateColumns.split(' ').filter(Boolean).length;
-    const gap = parseFloat(cs.columnGap) || 0;
-    const colWidth = (rect.width - gap * (numCols - 1)) / numCols;
+    const colGap = parseFloat(cs.columnGap) || 0;
+    const colWidth = (rect.width - colGap * (numCols - 1)) / numCols;
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -72,8 +149,8 @@ export function TileGrid({ page }) {
     function onMove(ev) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
-      const w = clamp(startW + Math.round(dx / (colWidth + gap)), 1, numCols);
-      const h = clamp(startH + Math.round(dy / (ROW_HEIGHT + gap)), 1, MAX_H);
+      const w = clamp(startW + Math.round(dx / (colWidth + colGap)), 1, numCols);
+      const h = clamp(startH + Math.round(dy / (rowHeight + gap)), 1, MAX_H);
       setResizing({ id: tile.id, w, h });
     }
 
@@ -91,33 +168,61 @@ export function TileGrid({ page }) {
     window.addEventListener('pointerup', onUp);
   }
 
+  function renderTile(tile) {
+    return (
+      <TileCard
+        key={tile.id}
+        tile={tile}
+        editing={editing}
+        sizeOverride={resizing?.id === tile.id ? resizing : null}
+        onEdit={() => setModalTile(tile)}
+        onResizeStart={(e) => startResize(tile, e)}
+      />
+    );
+  }
+
   return (
     <section class="tile-section">
       <div class="tile-section-bar">
-        <button
-          class={`page-edit-btn${editing ? ' active' : ''}`}
-          onClick={() => setEditing((v) => !v)}
-        >
+        <button class={`page-edit-btn${editing ? ' active' : ''}`} onClick={() => setEditing((v) => !v)}>
           {editing ? 'Done' : 'Edit page'}
         </button>
       </div>
-      <div class={`tile-grid${editing ? ' tile-grid-editing' : ''}`} ref={gridRef}>
-        {tiles.value.map((tile) => (
-          <TileCard
-            key={tile.id}
-            tile={tile}
-            editing={editing}
-            sizeOverride={resizing?.id === tile.id ? resizing : null}
-            onEdit={() => setModalTile(tile)}
-            onResizeStart={(e) => startResize(tile, e)}
-          />
-        ))}
+
+      <div class={`tile-grid${editing ? ' tile-grid-editing' : ''}`} ref={gridRef} style={gridStyle}>
+        {!hasGroups
+          ? tiles.value.map(renderTile)
+          : groups.flatMap((g) => {
+              const rows = [];
+              if (g.name !== '') {
+                const isCollapsed = collapsed.has(g.name);
+                rows.push(
+                  <button
+                    key={`h:${g.name}`}
+                    type="button"
+                    class="tile-group-header"
+                    data-group={g.name}
+                    data-collapsed={isCollapsed ? '' : undefined}
+                    onClick={() => toggleGroup(g.name)}
+                  >
+                    <span class="tile-group-caret">▾</span>
+                    {g.name}
+                    <span class="tile-group-count">{g.tiles.length}</span>
+                  </button>
+                );
+                if (isCollapsed) return rows;
+              }
+              rows.push(...g.tiles.map(renderTile));
+              return rows;
+            })}
       </div>
+
       {editing && (
         <button class="add-tile-btn" onClick={() => setModalTile(null)}>
           + Add tile
         </button>
       )}
+
       {modalTile !== undefined && (
         <TileModal
           tile={modalTile}

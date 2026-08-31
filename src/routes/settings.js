@@ -6,15 +6,21 @@ const DEFAULTS = {
   theme: 'minimal',
   dark_mode: 'system',
   accent: '#5b8def',
+  font_family: '',
+  custom_css: '',
+  custom_js: '',
+  custom_js_enabled: false,
   global_background: null,
   compose_scan_enabled: false,
   compose_scan_dir: null,
   compose_scan_page_id: null,
 };
 
-const THEMES = new Set(['minimal', 'glass', 'terminal', 'gradient']);
+const THEMES = new Set(['minimal', 'glass', 'terminal', 'gradient', 'nord', 'rosepine']);
+const FONTS = new Set(['', 'system', 'inter', 'serif', 'mono', 'rounded']);
 const MODES = new Set(['light', 'dark', 'system']);
 const ACCENT_RE = /^#[0-9a-f]{6}$/i;
+const MAX_CUSTOM = 40_000;
 
 export default async function settingsRoutes(app) {
   const db = app.db;
@@ -41,6 +47,19 @@ export default async function settingsRoutes(app) {
     if (body.accent !== undefined) {
       if (!ACCENT_RE.test(body.accent)) return reply.code(400).send({ error: 'accent must be a #rrggbb hex color' });
       next.accent = body.accent;
+    }
+    if (body.font_family !== undefined) {
+      if (!FONTS.has(body.font_family)) return reply.code(400).send({ error: `font_family must be one of ${[...FONTS].join(', ')}` });
+      next.font_family = body.font_family;
+    }
+    if (body.custom_css !== undefined) {
+      next.custom_css = String(body.custom_css || '').slice(0, MAX_CUSTOM);
+    }
+    if (body.custom_js !== undefined) {
+      next.custom_js = String(body.custom_js || '').slice(0, MAX_CUSTOM);
+    }
+    if (body.custom_js_enabled !== undefined) {
+      next.custom_js_enabled = Boolean(body.custom_js_enabled);
     }
     if (body.global_background !== undefined) {
       next.global_background = body.global_background || null;

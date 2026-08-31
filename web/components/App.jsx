@@ -40,8 +40,10 @@ export function App() {
     return () => mq.removeEventListener('change', onChange);
   }, [currentSettings, currentPage]);
 
+  const maxWidth = currentPage?.options?.grid?.maxWidth;
+
   return (
-    <div class="app">
+    <div class="app" style={maxWidth ? { maxWidth: `${maxWidth}px` } : undefined}>
       <header class="app-header">
         <h1>{currentSettings.site_title}</h1>
         <nav class="view-tabs">
