@@ -110,20 +110,43 @@ function HostPortSummary({ stacks }) {
   );
 }
 
+function stackHostPorts(stack) {
+  const seen = new Map();
+  for (const svc of stack.services) {
+    for (const p of svc.ports) {
+      if (!p.host) continue;
+      const proto = p.protocol === 'udp' ? 'udp' : 'tcp';
+      const key = `${p.host}/${proto}`;
+      if (!seen.has(key)) seen.set(key, { host: p.host, udp: proto === 'udp' });
+    }
+  }
+  return [...seen.values()].sort((a, b) => parseInt(a.host, 10) - parseInt(b.host, 10));
+}
+
 function Stack({ stack }) {
-  const portCount = stack.services.reduce((n, s) => n + s.ports.length, 0);
-  const volCount = stack.services.reduce((n, s) => n + s.volumes.length, 0);
+  const svcCount = stack.services.length;
+  const volCount =
+    stack.services.reduce((n, s) => n + s.volumes.length, 0) + stack.namedVolumes.length;
+  const hostPorts = stackHostPorts(stack);
+  const fileName = stack.file.split('/').pop();
   return (
     <details class="compose-stack">
       <summary>
         <span class="compose-chevron" aria-hidden="true" />
         <span class="compose-stack-name">{stack.name}</span>
-        <span class="compose-stack-pills">
-          <span class="compose-pill">{stack.services.length} svc</span>
-          <span class="compose-pill">{portCount} ports</span>
-          <span class="compose-pill">{volCount} vols</span>
+        <span class="compose-chips compose-stack-ports">
+          {hostPorts.length === 0 && <span class="compose-none">no published ports</span>}
+          {hostPorts.map((p) => (
+            <span key={`${p.host}/${p.udp}`} class={`chip chip-port${p.udp ? ' chip-udp' : ''}`}>
+              <span class="chip-num">:{p.host}</span>
+              {p.udp && <span class="chip-suffix">udp</span>}
+            </span>
+          ))}
         </span>
-        <code class="compose-stack-file">{stack.file}</code>
+        <span class="compose-stack-meta" title={stack.file}>
+          {svcCount} service{svcCount === 1 ? '' : 's'} · {volCount} volume{volCount === 1 ? '' : 's'} ·{' '}
+          <code>{fileName}</code>
+        </span>
       </summary>
       <div class="compose-stack-body">
         {stack.services.map((svc) => (
