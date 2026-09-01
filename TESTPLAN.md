@@ -324,9 +324,10 @@ Run after frontend changes or before a release. ~5 minutes.
 3. **Pages:** add a page, rename it, drag tabs to reorder, delete it.
 4. **Tiles:** add one of each type (link, iframe, clock, weather, notes, search,
    rss, calendar, bookmarks, customapi, resources); each renders a body. In the
-   Add/Edit modal, expand "Group & appearance" on a short window → the modal
-   scrolls inside itself (caps at viewport height) and the Save/Cancel/Delete
-   bar stays stuck to the bottom.
+   Add/Edit modal, expand "Group & appearance" on a short window (and on the
+   glass/gradient themes) → the dimmed backdrop scrolls, the whole modal is
+   reachable, and the Save/Cancel/Delete bar stays stuck to the bottom of the
+   screen.
 5. **Tile layout:** drag a tile to a new cell, resize it from the corner grip,
    collapse a named group, reload — layout persisted. Edit a tile and change
    its Group → it lands in the target group's first free slot (bottom), never

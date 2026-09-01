@@ -573,29 +573,34 @@ body[data-has-bg]::before {
 
 /* Modal */
 
+/* The backdrop is the scroll container: a modal taller than the viewport (e.g. the
+   expanded "Group & appearance" section) stays fully reachable by scrolling here,
+   rather than being clipped by a fixed, centred box. `margin: auto` on the modal
+   centres it when it fits and top-aligns it (so you can scroll down) when it
+   doesn't. Doing it this way — instead of max-height + overflow on .modal — also
+   avoids the glass/gradient themes' `backdrop-filter` on .modal breaking its own
+   scrolling. */
 .modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 10;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .modal {
+  margin: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 20px;
   width: 340px;
-  max-width: calc(100vw - 32px);
-  /* Tall content (e.g. the expanded "Group & appearance" section) must stay
-     reachable — cap the height and scroll inside rather than clipping past the
-     viewport. */
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
