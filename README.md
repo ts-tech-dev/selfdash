@@ -53,6 +53,20 @@ then point `docker-compose.yml` at `image: selfdash:local`.
 > reach the npm registry. Give the build the host network stack: `docker build --network=host
 > -t selfdash:local .` (or `DOCKER_BUILDKIT=0 docker build -t selfdash:local .`).
 
+## Testing
+
+Run the full-validation suite after every change:
+
+```bash
+npm test          # unit + API — ~10s, no network, no browser
+npm run test:all  # + headless-browser smoke (needs Chrome; skips otherwise)
+```
+
+`npm test` boots the real server against throwaway SQLite DBs and exercises every
+route, plus every pure helper in `src/shared` and `src/lib`. The case-by-case
+catalog and the process for adding tests when you add a feature live in
+[`TESTPLAN.md`](TESTPLAN.md); running details are in [`test/README.md`](test/README.md).
+
 ## Environment variables
 
 | Var | Default | Purpose |
