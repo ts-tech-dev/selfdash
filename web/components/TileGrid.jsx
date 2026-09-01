@@ -6,8 +6,7 @@ import { TileModal } from './TileModal.jsx';
 import { t } from '../i18n.js';
 
 const DEFAULT_ROW_HEIGHT = 96;
-const MAX_SPAN = 12;
-const MAX_H = 8;
+const MAX_H = 6;
 const MAX_ROW = 100; // guard rail on how far down a tile can be placed within a group
 const HEALTH_POLL_MS = 30_000;
 const NARROW_MQ = '(max-width: 640px)';
@@ -157,6 +156,16 @@ export function TileGrid({ page }) {
 
   function startDrag(tile, e) {
     if (!editing || narrow) return;
+    // The whole tile is the drag surface, but leave form controls, buttons and the
+    // resize grip to their own behaviour (e.g. the Notes in-place editor).
+    if (
+      e.target.closest(
+        '.tile-resize-handle, .tile-edit-btn, input, textarea, select, button, [contenteditable="true"]'
+      )
+    ) {
+      return;
+    }
+    if (e.button != null && e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
     const { cols, colStride, rowStride } = cellMetrics();
@@ -187,7 +196,7 @@ export function TileGrid({ page }) {
     window.addEventListener('pointerup', onUp);
   }
 
-  function startResize(tile, axis, e) {
+  function startResize(tile, e) {
     e.preventDefault();
     e.stopPropagation();
     const { cols, colStride, rowStride } = cellMetrics();
@@ -195,15 +204,12 @@ export function TileGrid({ page }) {
     const startY = e.clientY;
     const ow = tile.w || 1;
     const oh = tile.h || 1;
-    const maxW = Math.min(MAX_SPAN, cols);
     let latest = { w: ow, h: oh };
     setResizing({ id: tile.id, w: ow, h: oh });
 
     function onMove(ev) {
-      const dw = axis === 'y' ? 0 : Math.round((ev.clientX - startX) / colStride);
-      const dh = axis === 'x' ? 0 : Math.round((ev.clientY - startY) / rowStride);
-      const w = clamp(ow + dw, 1, maxW);
-      const h = clamp(oh + dh, 1, MAX_H);
+      const w = clamp(ow + Math.round((ev.clientX - startX) / colStride), 1, cols);
+      const h = clamp(oh + Math.round((ev.clientY - startY) / rowStride), 1, MAX_H);
       if (w === latest.w && h === latest.h) return; // only re-render on a cell change
       latest = { w, h };
       setResizing({ id: tile.id, w, h });
@@ -244,11 +250,10 @@ export function TileGrid({ page }) {
         narrow={narrow}
         placement={narrow ? { w: Math.min(tl.w || 1, NARROW_COLS), h: tl.h || 1 } : item}
         dragging={drag?.id === tl.id}
-        resizing={resizing?.id === tl.id}
-        sizeLabel={resizing?.id === tl.id ? `${resizing.w}×${resizing.h}` : null}
+        sizeOverride={resizing?.id === tl.id ? resizing : null}
         onEdit={() => setModalTile(tl)}
         onDragStart={(e) => startDrag(tl, e)}
-        onResizeStart={(axis, e) => startResize(tl, axis, e)}
+        onResizeStart={(e) => startResize(tl, e)}
       />
     );
   }
@@ -285,10 +290,14 @@ export function TileGrid({ page }) {
     return out;
   }
 
+  const gridCols = narrow ? NARROW_COLS : columns;
   const gridStyle = {
-    gridTemplateColumns: `repeat(${narrow ? NARROW_COLS : columns}, minmax(0, 1fr))`,
+    gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
     gridAutoRows: `${rowHeight}px`,
     gap: `${gap}px`,
+    // Drives the faint cell grid shown in edit mode (see .tile-grid-editing CSS).
+    '--cell-w': `calc((100% + ${gap}px) / ${gridCols})`,
+    '--row-h': `${rowHeight + gap}px`,
   };
 
   return (

@@ -40,11 +40,11 @@ function appearanceStyle(tile) {
   return style;
 }
 
-// Where the tile sits in the grid. `placement.colStart` present -> explicit
-// free placement; absent (narrow screens) -> plain span with auto-flow.
-function placementStyle(tile, placement) {
-  const w = placement?.w ?? tile.w;
-  const h = placement?.h ?? tile.h;
+// Where the tile sits in the grid. `placement.colStart` present -> explicit free
+// placement; absent (narrow screens) -> plain span with auto-flow.
+function placementStyle(tile, placement, sizeOverride) {
+  const w = sizeOverride?.w ?? placement?.w ?? tile.w;
+  const h = sizeOverride?.h ?? placement?.h ?? tile.h;
   if (placement?.colStart) {
     return {
       gridColumn: `${placement.colStart} / span ${w}`,
@@ -54,22 +54,23 @@ function placementStyle(tile, placement) {
   return { gridColumn: `span ${w}`, gridRow: `span ${h}` };
 }
 
-// Per-tile controls (drag handle, Edit button, resize grips) only appear while the
-// page is in edit mode; Delete lives inside the edit modal.
+// Per-tile controls (Edit button, resize grip) only appear while the page is in
+// edit mode; Delete lives inside the edit modal. In edit mode the whole tile is a
+// drag surface (onDragStart is wired on the root), so the ⋮⋮ mark is decoration.
 export function TileCard({
   tile,
   editing,
   narrow,
   placement,
   dragging,
-  resizing,
-  sizeLabel,
+  sizeOverride,
   onEdit,
   onDragStart,
   onResizeStart,
 }) {
-  const style = { ...placementStyle(tile, placement), ...appearanceStyle(tile) };
+  const style = { ...placementStyle(tile, placement, sizeOverride), ...appearanceStyle(tile) };
   const hideTitle = Boolean(tile.config?.appearance?.hideTitle);
+  const movable = editing && !narrow;
 
   const panel = registryEntry(tile.type);
   const className = [
@@ -77,76 +78,54 @@ export function TileCard({
     panel ? 'tile-panel-card' : '',
     tile.type === 'widget' ? 'tile-widget' : '',
     tile.open_mode === 'iframe' ? 'tile-iframe' : '',
+    movable ? 'tile-movable' : '',
     dragging ? 'tile-dragging' : '',
-    resizing ? 'tile-resizing' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
-  const dragHandle = editing && !narrow && (
-    <span class="tile-drag-handle" title="Drag to move" onPointerDown={onDragStart}>
-      ⋮⋮
-    </span>
-  );
+  const rootProps = { class: className, 'data-id': tile.id, style };
+  if (movable) rootProps.onPointerDown = onDragStart;
+
+  const dragMark = movable && <span class="tile-drag-handle" title="Drag to move">⋮⋮</span>;
   const editButton = editing && (
     <button class="tile-edit-btn" onClick={onEdit}>
       {t('tile.edit')}
     </button>
   );
-  const resizeGrips = editing && (
-    <>
-      <span
-        class="tile-resize tile-resize-e"
-        title="Drag to change width"
-        onPointerDown={(e) => onResizeStart('x', e)}
-      />
-      {!narrow && (
-        <span
-          class="tile-resize tile-resize-s"
-          title="Drag to change height"
-          onPointerDown={(e) => onResizeStart('y', e)}
-        />
-      )}
-      <span
-        class="tile-resize tile-resize-se"
-        title="Drag to resize"
-        onPointerDown={(e) => onResizeStart(narrow ? 'x' : 'both', e)}
-      >
-        ⤡
-      </span>
-    </>
+  const resizeHandle = editing && (
+    <span class="tile-resize-handle" title="Drag to resize" onPointerDown={onResizeStart}>
+      ◢
+    </span>
   );
-  const badge = sizeLabel && <span class="tile-size-badge">{sizeLabel}</span>;
 
   // Built-in info/data panel tile (clock, weather, notes, …).
   if (panel) {
     const Body = panel.Component;
     return (
-      <div class={className} data-id={tile.id} style={style}>
+      <div {...rootProps}>
         <div class="tile-toolbar">
-          {dragHandle}
+          {dragMark}
           {!hideTitle && <span class="tile-toolbar-title">{tile.title || panel.label}</span>}
           {editButton && <div class="tile-toolbar-actions">{editButton}</div>}
         </div>
         <Body tile={tile} />
-        {resizeGrips}
-        {badge}
+        {resizeHandle}
       </div>
     );
   }
 
   if (tile.type === 'widget') {
     return (
-      <div class={className} data-id={tile.id} style={style}>
+      <div {...rootProps}>
         <HealthDot {...widgetHealth(tile)} />
         <div class="tile-toolbar">
-          {dragHandle}
+          {dragMark}
           {!hideTitle && <span class="tile-toolbar-title">{tile.title || 'Widget'}</span>}
           {editButton && <div class="tile-toolbar-actions">{editButton}</div>}
         </div>
         <WidgetTile tile={tile} />
-        {resizeGrips}
-        {badge}
+        {resizeHandle}
       </div>
     );
   }
@@ -159,10 +138,10 @@ export function TileCard({
         : { aspectRatio: cfg.aspectRatio || '16/9', height: 'auto' };
 
     return (
-      <div class={className} data-id={tile.id} style={style}>
+      <div {...rootProps}>
         <HealthDot {...urlHealth(tile.url)} />
         <div class="tile-toolbar">
-          {dragHandle}
+          {dragMark}
           {!hideTitle && <span class="tile-toolbar-title">{tile.title || tile.url}</span>}
           {editButton && <div class="tile-toolbar-actions">{editButton}</div>}
         </div>
@@ -176,8 +155,7 @@ export function TileCard({
             style={iframeStyle}
           />
         </div>
-        {resizeGrips}
-        {badge}
+        {resizeHandle}
       </div>
     );
   }
@@ -185,22 +163,22 @@ export function TileCard({
   const target = tile.open_mode === 'newtab' ? '_blank' : undefined;
 
   return (
-    <div class={className} data-id={tile.id} style={style}>
+    <div {...rootProps}>
       <HealthDot {...urlHealth(tile.url)} />
-      {dragHandle}
+      {dragMark}
       <a
         class="tile-link"
         href={tile.url || '#'}
         target={target}
         rel={target ? 'noopener noreferrer' : undefined}
+        onClick={editing ? (e) => e.preventDefault() : undefined}
       >
         {tile.icon && <img class="tile-icon" src={resolveIcon(tile.icon)} alt="" />}
         {!hideTitle && <span class="tile-title">{tile.title || tile.url}</span>}
         {tile.description && <span class="tile-desc">{tile.description}</span>}
       </a>
       {editButton && <div class="tile-actions">{editButton}</div>}
-      {resizeGrips}
-      {badge}
+      {resizeHandle}
     </div>
   );
 }

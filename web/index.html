@@ -15,6 +15,16 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+      // When a new service worker takes control (after a deploy), reload once so
+      // the fresh app.js/style.css are actually shown. Skip on the very first
+      // registration, when there was no controller to replace.
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading || !hadController) return;
+        reloading = true;
+        window.location.reload();
+      });
     }
   </script>
 </body>

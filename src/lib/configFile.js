@@ -224,8 +224,8 @@ export function importConfigDoc(app, doc, { includeSettings = true } = {}) {
           f.integration_id,
           clampInt(t.x ?? 0, 0, 11),
           clampInt(t.y ?? 0, 0, 4096),
-          clampInt(t.w ?? 2, 1, 12),
-          clampInt(t.h ?? 1, 1, 12),
+          clampInt(t.w ?? 2, 1, 6),
+          clampInt(t.h ?? 1, 1, 6),
           ti,
           JSON.stringify(f.config)
         );

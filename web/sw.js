@@ -1,6 +1,8 @@
-// Minimal offline shell. Cache-first for same-origin static assets; the network is
-// always used for /api/ and /uploads/. Bump CACHE to invalidate on deploy.
-const CACHE = 'selfdash-shell-v1';
+// Minimal offline shell. Network-first for same-origin GETs so a redeploy is
+// picked up immediately (a cache-first shell used to pin stale app.js/style.css
+// until a second reload); the cache is only a fallback when offline. /api/ and
+// /uploads/ always bypass the worker. Bump CACHE to purge old entries on deploy.
+const CACHE = 'selfdash-shell-v2';
 const SHELL = ['/', '/app.js', '/style.css', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (e) => {
@@ -21,14 +23,16 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/')) return;
 
   e.respondWith(
-    caches.match(request, { ignoreSearch: true }).then((hit) => {
-      const net = fetch(request)
-        .then((res) => {
-          if (res.ok) caches.open(CACHE).then((c) => c.put(request, res.clone()));
-          return res;
-        })
-        .catch(() => hit || caches.match('/'));
-      return hit || net;
-    })
+    fetch(request)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(request, copy));
+        }
+        return res;
+      })
+      .catch(() =>
+        caches.match(request, { ignoreSearch: true }).then((hit) => hit || caches.match('/'))
+      )
   );
 });

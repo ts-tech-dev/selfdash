@@ -26,8 +26,8 @@ export default async function tilesRoutes(app) {
       return reply.code(400).send({ error: err.message });
     }
 
-    const w = clampInt(Number(body.w) || 2, 1, 12);
-    const h = clampInt(Number(body.h) || 1, 1, 12);
+    const w = clampInt(Number(body.w) || 2, 1, 6);
+    const h = clampInt(Number(body.h) || 1, 1, 6);
     const x = clampInt(Number(body.x) || 0, 0, 11);
     const y = clampInt(Number(body.y) || 0, 0, 4096);
     const maxPos = db
@@ -80,8 +80,8 @@ export default async function tilesRoutes(app) {
       description: body.description !== undefined ? body.description : existing.description,
       x: body.x !== undefined ? clampInt(Number(body.x), 0, 11) : existing.x,
       y: body.y !== undefined ? clampInt(Number(body.y), 0, 4096) : existing.y,
-      w: body.w !== undefined ? clampInt(Number(body.w), 1, 12) : existing.w,
-      h: body.h !== undefined ? clampInt(Number(body.h), 1, 12) : existing.h,
+      w: body.w !== undefined ? clampInt(Number(body.w), 1, 6) : existing.w,
+      h: body.h !== undefined ? clampInt(Number(body.h), 1, 6) : existing.h,
     };
 
     db.prepare(
