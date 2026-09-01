@@ -2,6 +2,8 @@
 // backup import so the rules live in one place. Each sanitizer takes the raw config
 // object and returns a clean one; unknown keys are dropped.
 
+import { isHexColor } from './color.js';
+
 const ASPECT_RE = /^\d{1,3}\s*\/\s*\d{1,3}$/;
 const URL_RE = /^https?:\/\//i;
 const DEFAULT_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups';
@@ -174,9 +176,9 @@ export function commonConfig(raw) {
   const a = raw?.appearance;
   if (a && typeof a === 'object') {
     const app = {};
-    if (/^#[0-9a-f]{6}$/i.test(a.accent || '')) app.accent = a.accent;
-    if (/^#[0-9a-f]{6}$/i.test(a.iconBg || '')) app.iconBg = a.iconBg;
-    if (/^#[0-9a-f]{6}$/i.test(a.textColor || '')) app.textColor = a.textColor;
+    if (isHexColor(a.accent)) app.accent = a.accent;
+    if (isHexColor(a.iconBg)) app.iconBg = a.iconBg;
+    if (isHexColor(a.textColor)) app.textColor = a.textColor;
     if (a.hideTitle) app.hideTitle = true;
     if (Object.keys(app).length) out.appearance = app;
   }

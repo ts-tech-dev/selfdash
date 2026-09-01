@@ -3,6 +3,7 @@ import { WidgetTile } from './WidgetTile.jsx';
 import { registryEntry } from '../tiles/registry.jsx';
 import { resolveIcon } from '../tiles/icons.js';
 import { t } from '../i18n.js';
+import { dimmedTextColor } from '../../src/shared/color.js';
 
 function HealthDot({ state, label }) {
   return <span class={`tile-health tile-health-${state}`} title={label} aria-label={label} />;
@@ -39,7 +40,7 @@ function appearanceStyle(tile) {
   if (a.iconBg) style['--tile-icon-bg'] = a.iconBg;
   if (a.textColor) {
     style['--text'] = a.textColor;
-    style['--text-dim'] = `color-mix(in srgb, ${a.textColor} 62%, var(--bg))`;
+    style['--text-dim'] = dimmedTextColor(a.textColor);
   }
   return style;
 }

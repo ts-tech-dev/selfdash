@@ -5,6 +5,23 @@
 
 export const portKey = (host, protocol) => `${host}/${protocol || 'tcp'}`;
 
+// De-duplicated published host ports across a list of services, numeric-ascending.
+// Returns `[{ host, protocol }]` where protocol is 'tcp' unless the mapping said
+// otherwise. Used for both the panel-wide "Host ports" strip and each stack's
+// summary chips (same shaping, previously copy-pasted).
+export function uniqueHostPorts(services) {
+  const seen = new Map();
+  for (const svc of services || []) {
+    for (const p of svc.ports || []) {
+      if (!p.host) continue;
+      const protocol = p.protocol === 'udp' ? 'udp' : 'tcp';
+      const key = portKey(p.host, protocol);
+      if (!seen.has(key)) seen.set(key, { host: p.host, protocol });
+    }
+  }
+  return [...seen.values()].sort((a, b) => parseInt(a.host, 10) - parseInt(b.host, 10));
+}
+
 // stacks -> Map<portKey, Array<{ stack, service }>>, only entries with >1 owner.
 export function hostPortConflicts(stacks) {
   const byPort = new Map();

@@ -1,5 +1,6 @@
 import { invalidateComposeScanCache } from './composeScan.js';
 import { THEME_SET } from '../shared/themes.js';
+import { isHexColor } from '../shared/color.js';
 
 export const DEFAULTS = {
   site_title: 'selfdash',
@@ -22,7 +23,6 @@ export const DEFAULTS = {
 const THEMES = THEME_SET;
 const FONTS = new Set(['', 'system', 'inter', 'serif', 'mono', 'rounded']);
 const MODES = new Set(['light', 'dark', 'system']);
-const ACCENT_RE = /^#[0-9a-f]{6}$/i;
 const MAX_CUSTOM = 40_000;
 
 export default async function settingsRoutes(app) {
@@ -48,12 +48,12 @@ export default async function settingsRoutes(app) {
       next.dark_mode = body.dark_mode;
     }
     if (body.accent !== undefined) {
-      if (!ACCENT_RE.test(body.accent)) return reply.code(400).send({ error: 'accent must be a #rrggbb hex color' });
+      if (!isHexColor(body.accent)) return reply.code(400).send({ error: 'accent must be a #rrggbb hex color' });
       next.accent = body.accent;
     }
     if (body.text_color !== undefined) {
       // null / '' clears the override and falls back to the theme's text colour.
-      if (body.text_color && !ACCENT_RE.test(body.text_color)) {
+      if (body.text_color && !isHexColor(body.text_color)) {
         return reply.code(400).send({ error: 'text_color must be a #rrggbb hex color' });
       }
       next.text_color = body.text_color || null;

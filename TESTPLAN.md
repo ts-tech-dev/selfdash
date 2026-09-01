@@ -90,6 +90,8 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T22 | `commonConfig` keeps `appearance.textColor` only when a `#rrggbb` hex; `TileCard` maps it (and a derived `--text-dim`) to CSS vars on the tile root | ✅ `unit/shared.tileConfig` (apply path in `TileCard.jsx`) |
 | T23 | `contrast.js`: `parseColor` (hex 3/6, rgb, rgba flattened over white), `contrastRatio` (21 for black/white, 1 for equal, order-independent, null on unparseable); drives the low-contrast hint on the text-colour pickers | ✅ `unit/shared.contrast` |
 | T24 | `themes.js` `THEMES` list (8 built-ins incl. `dracula`, `oled`) is the single source for the settings route, page-options sanitiser, and settings UI | ✅ `api/settings` (accepts `dracula`/`oled`, rejects unknown) |
+| T25 | `color.js` `isHexColor` (only `#rrggbb`, any case; rejects shorthand/names/rgb()/non-string) + `dimmedTextColor` — the one hex check reused by `tileConfig`, `pageOptions`, the settings route, and the appearance UI | ✅ `unit/shared.color` |
+| T26 | `composePorts.js` `uniqueHostPorts` — de-dupe + numeric sort + protocol-normalise of published host ports, shared by the panel-wide strip and each stack's summary chips | ✅ `unit/shared.composePorts` |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |

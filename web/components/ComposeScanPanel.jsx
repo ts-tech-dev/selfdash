@@ -1,23 +1,10 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { settings, composeScan, loadComposeScan } from '../store.js';
-import { hostPortConflicts, portKey } from '../../src/shared/composePorts.js';
+import { hostPortConflicts, portKey, uniqueHostPorts } from '../../src/shared/composePorts.js';
+import { loadSet, saveSet } from '../persist.js';
 
 const REFRESH_MS = 60_000;
-
-function loadOpen(pageId) {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(`selfdash:compose-open:${pageId}`) || '[]'));
-  } catch {
-    return new Set();
-  }
-}
-function saveOpen(pageId, set) {
-  try {
-    localStorage.setItem(`selfdash:compose-open:${pageId}`, JSON.stringify([...set]));
-  } catch {
-    /* private mode */
-  }
-}
+const openKey = (pageId) => `selfdash:compose-open:${pageId}`;
 
 // Everything a filter query is matched against for one stack.
 function stackHaystack(stack) {
@@ -36,9 +23,9 @@ export function ComposeScanPanel({ pageId }) {
   const onTargetPage = enabled && (targetPage == null || targetPage === pageId);
 
   const [filter, setFilter] = useState('');
-  const [open, setOpen] = useState(() => loadOpen(pageId));
+  const [open, setOpen] = useState(() => loadSet(openKey(pageId)));
 
-  useEffect(() => setOpen(loadOpen(pageId)), [pageId]);
+  useEffect(() => setOpen(loadSet(openKey(pageId))), [pageId]);
 
   useEffect(() => {
     if (!onTargetPage) return undefined;
@@ -61,13 +48,13 @@ export function ComposeScanPanel({ pageId }) {
     setOpen((prev) => {
       const next = new Set(prev);
       isOpen ? next.add(name) : next.delete(name);
-      saveOpen(pageId, next);
+      saveSet(openKey(pageId), next);
       return next;
     });
   }
   function setAll(isOpen) {
     const next = isOpen ? new Set(stacks.map((s) => s.name)) : new Set();
-    saveOpen(pageId, next);
+    saveSet(openKey(pageId), next);
     setOpen(next);
   }
 
@@ -173,63 +160,42 @@ function conflictTitle(conflicts, key, self) {
   return `Also published by ${owners.map((o) => `${o.service} (${o.stack})`).join(', ')}`;
 }
 
-function HostPortSummary({ stacks, conflicts }) {
-  const seen = new Map();
-  for (const s of stacks) {
-    for (const svc of s.services) {
-      for (const p of svc.ports) {
-        if (!p.host) continue;
-        const proto = p.protocol && p.protocol !== 'tcp' ? p.protocol : null;
-        const key = `${p.host}/${proto || 'tcp'}`;
-        if (!seen.has(key)) seen.set(key, { host: p.host, proto });
-      }
-    }
-  }
-  const list = [...seen.values()].sort((a, b) => parseInt(a.host, 10) - parseInt(b.host, 10));
-  if (!list.length) return null;
+// One published-port chip, shared by the panel-wide strip and each stack summary.
+function PortChip({ host, protocol, conflicts }) {
+  const key = portKey(host, protocol);
+  const clash = conflicts.has(key);
+  return (
+    <span
+      class={`chip chip-port${protocol === 'udp' ? ' chip-udp' : ''}${clash ? ' chip-port-conflict' : ''}`}
+      title={clash ? conflictTitle(conflicts, key) : undefined}
+    >
+      <span class="chip-num">{host}</span>
+      {protocol === 'udp' && <span class="chip-suffix">udp</span>}
+      {clash && <span class="chip-suffix chip-suffix-warn">clash</span>}
+    </span>
+  );
+}
 
+function HostPortSummary({ stacks, conflicts }) {
+  const list = uniqueHostPorts(stacks.flatMap((s) => s.services));
+  if (!list.length) return null;
   return (
     <div class="compose-hostports">
       <span class="compose-hostports-label">Host ports</span>
       <div class="compose-chips">
-        {list.map((p) => {
-          const key = `${p.host}/${p.proto || 'tcp'}`;
-          const clash = conflicts.has(key);
-          return (
-            <span
-              key={key}
-              class={`chip chip-port${p.proto === 'udp' ? ' chip-udp' : ''}${clash ? ' chip-port-conflict' : ''}`}
-              title={clash ? conflictTitle(conflicts, key) : undefined}
-            >
-              <span class="chip-num">{p.host}</span>
-              {p.proto && <span class="chip-suffix">{p.proto}</span>}
-              {clash && <span class="chip-suffix chip-suffix-warn">clash</span>}
-            </span>
-          );
-        })}
+        {list.map((p) => (
+          <PortChip key={portKey(p.host, p.protocol)} host={p.host} protocol={p.protocol} conflicts={conflicts} />
+        ))}
       </div>
     </div>
   );
-}
-
-function stackHostPorts(stack) {
-  const seen = new Map();
-  for (const svc of stack.services) {
-    for (const p of svc.ports) {
-      if (!p.host) continue;
-      const proto = p.protocol === 'udp' ? 'udp' : 'tcp';
-      const key = `${p.host}/${proto}`;
-      if (!seen.has(key)) seen.set(key, { host: p.host, udp: proto === 'udp' });
-    }
-  }
-  return [...seen.values()].sort((a, b) => parseInt(a.host, 10) - parseInt(b.host, 10));
 }
 
 function Stack({ stack, conflicts, open, onToggle }) {
   const svcCount = stack.services.length;
   const volCount =
     stack.services.reduce((n, s) => n + s.volumes.length, 0) + stack.namedVolumes.length;
-  const hostPorts = stackHostPorts(stack);
+  const hostPorts = uniqueHostPorts(stack.services);
   const fileName = stack.file.split('/').pop();
   return (
     <details class="compose-stack" open={open} onToggle={(e) => onToggle(e.currentTarget.open)}>
@@ -238,20 +204,9 @@ function Stack({ stack, conflicts, open, onToggle }) {
         <span class="compose-stack-name">{stack.name}</span>
         <span class="compose-chips compose-stack-ports">
           {hostPorts.length === 0 && <span class="compose-none">no published ports</span>}
-          {hostPorts.map((p) => {
-            const key = `${p.host}/${p.udp ? 'udp' : 'tcp'}`;
-            const clash = conflicts.has(key);
-            return (
-              <span
-                key={key}
-                class={`chip chip-port${p.udp ? ' chip-udp' : ''}${clash ? ' chip-port-conflict' : ''}`}
-                title={clash ? conflictTitle(conflicts, key) : undefined}
-              >
-                <span class="chip-num">:{p.host}</span>
-                {p.udp && <span class="chip-suffix">udp</span>}
-              </span>
-            );
-          })}
+          {hostPorts.map((p) => (
+            <PortChip key={portKey(p.host, p.protocol)} host={p.host} protocol={p.protocol} conflicts={conflicts} />
+          ))}
         </span>
         <span class="compose-stack-meta" title={stack.file}>
           {svcCount} service{svcCount === 1 ? '' : 's'} · {volCount} volume{volCount === 1 ? '' : 's'} ·{' '}

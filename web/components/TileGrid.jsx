@@ -4,6 +4,7 @@ import { occupancyOf, placeBox } from '../../src/shared/gridPack.js';
 import { TileCard } from './TileCard.jsx';
 import { TileModal } from './TileModal.jsx';
 import { t } from '../i18n.js';
+import { loadSet, saveSet } from '../persist.js';
 
 const DEFAULT_ROW_HEIGHT = 96;
 const MAX_H = 6;
@@ -16,13 +17,7 @@ function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
-function loadCollapsed(pageId) {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(`selfdash:groups:${pageId}`) || '[]'));
-  } catch {
-    return new Set();
-  }
-}
+const collapsedKey = (pageId) => `selfdash:groups:${pageId}`;
 
 export function TileGrid({ page }) {
   const gridRef = useRef(null);
@@ -30,7 +25,7 @@ export function TileGrid({ page }) {
   const [modalTile, setModalTile] = useState(undefined);
   const [drag, setDrag] = useState(null); // { id, x, y } — live snapped position while dragging
   const [resizing, setResizing] = useState(null); // { id, w, h } — live snapped size while resizing
-  const [collapsed, setCollapsed] = useState(() => loadCollapsed(page.id));
+  const [collapsed, setCollapsed] = useState(() => loadSet(collapsedKey(page.id)));
   const [narrow, setNarrow] = useState(
     () => typeof window !== 'undefined' && window.matchMedia(NARROW_MQ).matches
   );
@@ -48,7 +43,7 @@ export function TileGrid({ page }) {
   }, []);
 
   useEffect(() => {
-    setCollapsed(loadCollapsed(page.id));
+    setCollapsed(loadSet(collapsedKey(page.id)));
   }, [page.id]);
 
   const healthUrls = tiles.value.filter((tl) => tl.url).map((tl) => tl.url).join(',');
@@ -133,11 +128,7 @@ export function TileGrid({ page }) {
     setCollapsed((prev) => {
       const next = new Set(prev);
       next.has(name) ? next.delete(name) : next.add(name);
-      try {
-        localStorage.setItem(`selfdash:groups:${page.id}`, JSON.stringify([...next]));
-      } catch {
-        /* private mode */
-      }
+      saveSet(collapsedKey(page.id), next);
       return next;
     });
   }
@@ -153,11 +144,7 @@ export function TileGrid({ page }) {
       const set = new Set(prev);
       set.delete(name);
       set.add(trimmed);
-      try {
-        localStorage.setItem(`selfdash:groups:${page.id}`, JSON.stringify([...set]));
-      } catch {
-        /* private mode */
-      }
+      saveSet(collapsedKey(page.id), set);
       return set;
     });
     await renameGroup(name, trimmed);

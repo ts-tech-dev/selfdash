@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hostPortConflicts, portKey } from '../../src/shared/composePorts.js';
+import { hostPortConflicts, portKey, uniqueHostPorts } from '../../src/shared/composePorts.js';
 
 const svc = (name, ports) => ({ name, ports: ports.map((p) => ({ ...p })) });
 const stack = (name, services) => ({ name, services });
@@ -43,4 +43,19 @@ test('hostPortConflicts: uses containerName when present; ignores unpublished (e
 test('portKey: defaults missing protocol to tcp', () => {
   assert.equal(portKey('8080', null), '8080/tcp');
   assert.equal(portKey('53', 'udp'), '53/udp');
+});
+
+test('uniqueHostPorts: de-dupes, numeric-sorts, normalises protocol, skips unpublished', () => {
+  const list = uniqueHostPorts([
+    svc('a', [{ host: '8080', container: '80' }, { host: '80', container: '80' }]),
+    svc('b', [{ host: '8080', container: '80' }, { host: '53', container: '53', protocol: 'udp' }]),
+    svc('c', [{ host: null, container: '9000' }]), // expose-only -> ignored
+  ]);
+  assert.deepEqual(list, [
+    { host: '53', protocol: 'udp' },
+    { host: '80', protocol: 'tcp' },
+    { host: '8080', protocol: 'tcp' },
+  ]);
+  assert.deepEqual(uniqueHostPorts([]), []);
+  assert.deepEqual(uniqueHostPorts(undefined), []);
 });

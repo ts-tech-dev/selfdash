@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { pages, addPage, renamePage, removePage, updatePageOptions, setPageBackground } from '../../store.js';
 import { THEMES } from '../../../src/shared/themes.js';
+import { isHexColor } from '../../../src/shared/color.js';
 import { ContrastHint } from './ContrastHint.jsx';
 
 const GRID_DEFAULTS = { columns: 6, gap: 14, rowHeight: 96, maxWidth: 0 };
@@ -24,8 +25,8 @@ function PageRow({ page }) {
   function saveOptions() {
     const appearance = {};
     if (appr.theme) appearance.theme = appr.theme;
-    if (/^#[0-9a-f]{6}$/i.test(appr.accent)) appearance.accent = appr.accent;
-    if (/^#[0-9a-f]{6}$/i.test(appr.textColor)) appearance.textColor = appr.textColor;
+    if (isHexColor(appr.accent)) appearance.accent = appr.accent;
+    if (isHexColor(appr.textColor)) appearance.textColor = appr.textColor;
     updatePageOptions(page.id, {
       grid,
       background: bg,

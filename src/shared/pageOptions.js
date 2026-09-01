@@ -1,11 +1,10 @@
 import { THEME_SET } from './themes.js';
+import { isHexColor } from './color.js';
 
 const clampN = (v, min, max, dflt) => {
   const n = Number(v);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt;
 };
-
-const HEX_RE = /^#[0-9a-f]{6}$/i;
 
 // Keep only known page-option keys, bounded. Shared by the pages route and the
 // YAML config importer.
@@ -34,8 +33,8 @@ export function sanitizePageOptions(o = {}) {
     const a = o.appearance;
     const app = {};
     if (THEME_SET.has(a.theme)) app.theme = a.theme;
-    if (HEX_RE.test(a.accent || '')) app.accent = a.accent;
-    if (HEX_RE.test(a.textColor || '')) app.textColor = a.textColor;
+    if (isHexColor(a.accent)) app.accent = a.accent;
+    if (isHexColor(a.textColor)) app.textColor = a.textColor;
     if (Object.keys(app).length) out.appearance = app;
   }
 

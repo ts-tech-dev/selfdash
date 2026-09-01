@@ -1,3 +1,5 @@
+import { dimmedTextColor } from '../src/shared/color.js';
+
 export function resolveMode(mode) {
   if (mode === 'light' || mode === 'dark') return mode;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -33,7 +35,7 @@ export function applyAppearance(settings, page) {
   const textColor = pa.textColor || settings.text_color;
   if (textColor) {
     root.style.setProperty('--text', textColor);
-    root.style.setProperty('--text-dim', `color-mix(in srgb, ${textColor} 62%, var(--bg))`);
+    root.style.setProperty('--text-dim', dimmedTextColor(textColor));
   } else {
     root.style.removeProperty('--text');
     root.style.removeProperty('--text-dim');

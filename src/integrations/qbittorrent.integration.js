@@ -1,5 +1,6 @@
 import { BaseIntegration } from './_base.js';
 import { runAllViews } from './_views.js';
+import { fmtRate } from '../shared/format.js';
 
 const VIEWS = {
   queue: { label: 'Download queue', run: fetchQueue },
@@ -66,7 +67,7 @@ async function fetchStats(ctx) {
       { label: 'Torrents', value: torrents.length },
       { label: 'Downloading', value: torrents.filter((t) => DOWNLOADING_STATES.has(t.state)).length },
       { label: 'Seeding', value: torrents.filter((t) => UPLOADING_STATES.has(t.state)).length },
-      { label: 'DL Speed', value: formatSpeed(torrents.reduce((sum, t) => sum + (t.dlspeed || 0), 0)) },
+      { label: 'DL Speed', value: fmtRate(torrents.reduce((sum, t) => sum + (t.dlspeed || 0), 0)) },
     ],
   };
 }
@@ -98,16 +99,4 @@ async function login({ base, config, http }) {
   }
 
   return headers;
-}
-
-function formatSpeed(bytesPerSec) {
-  if (!bytesPerSec) return '0 B/s';
-  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
-  let val = bytesPerSec;
-  let i = 0;
-  while (val >= 1024 && i < units.length - 1) {
-    val /= 1024;
-    i++;
-  }
-  return `${val.toFixed(1)} ${units[i]}`;
 }
