@@ -49,7 +49,9 @@ export function applyAppearance(settings, page) {
   root.style.setProperty('--page-bg-blur', `${pageBg?.blur || 0}px`);
   root.style.setProperty('--page-bg-dim', `${1 - (pageBg?.dim || 0) / 100}`);
   root.style.setProperty('--page-bg-opacity', `${(pageBg?.opacity ?? 100) / 100}`);
-  root.toggleAttribute('data-has-bg', Boolean(url));
+  // The background pseudo-element is `body[data-has-bg]::before`, so the flag has
+  // to live on <body> — setting it on <html> (root) never matches the selector.
+  document.body.toggleAttribute('data-has-bg', Boolean(url));
 
   // --- custom CSS (global + per-page) ---
   upsertEl('style', 'selfdash-custom-css').textContent =
