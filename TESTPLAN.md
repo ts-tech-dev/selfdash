@@ -176,6 +176,8 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | C6 | Settings change invalidates the cache | ✅ `api/composeScan` |
 | C7 | Nonexistent / non-dir path reports a read error | ✅ `unit/lib.composeScan` |
 | C8 | Walk bounded by depth / file count / file size; skips `node_modules`, `.git`, symlink escapes | ⏭️ limits in code; add ✅ if changed |
+| C9 | `hostPortConflicts`: flags a `host/proto` published by 2+ services (naming each owner); tcp+udp on one number don't clash; a service repeating a mapping isn't a self-conflict; expose-only (no host) ports ignored | ✅ `unit/shared.composePorts` |
+| C10 | Panel filter box narrows stacks by name/service/image/port substring; Expand-all / Collapse-all; per-page open state in `localStorage` (`selfdash:compose-open:<pageId>`) | 🖐️ §9.11 |
 
 ### 3.10 Backup (`src/routes/backup.js`)
 | # | Case | Where |
@@ -368,9 +370,14 @@ Run after frontend changes or before a release. ~5 minutes.
     Inside: an uppercase section-heading head row + hairline rule, a flat
     divided stack list (no nested cards), chips tinted to `--bg` for
     definition, and only published host-port chips carry a faint accent wash.
-    Expand a stack → per-service ports/volumes unchanged. Check it on the
-    glass theme — the panel blurs the background like the tiles, not
-    see-through.
+    Check it on the glass theme — the panel blurs the background like the
+    tiles, not see-through.
+    Type in the **filter** box → the stack list narrows on name / service /
+    image / port and shows "N of M"; a non-match shows an empty-state line.
+    **Expand all** / **Collapse all** toggle every stack, and the open set
+    survives a reload (per page). If two services (any stack) publish the same
+    `host/proto`, both chips turn red with a "clash" tag and a tooltip naming
+    the other owner, and the header shows "⚠ N port conflicts".
 12. **Backup:** export a zip; re-import it → app restarts, data intact.
 13. **Config:** export YAML, edit the site title, re-import → applied.
 14. **PWA:** install, go offline, reload → shell still loads.

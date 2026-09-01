@@ -1554,7 +1554,7 @@ body[data-has-bg]::before {
   font-variant-numeric: tabular-nums;
 }
 
-.compose-rescan {
+.compose-btn {
   font: inherit;
   font-size: 0.72rem;
   background: transparent;
@@ -1566,9 +1566,40 @@ body[data-has-bg]::before {
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.compose-rescan:hover {
+.compose-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.compose-conflict-badge {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #f87171;
+  border: 1px solid color-mix(in srgb, #f87171 45%, var(--border));
+  background: color-mix(in srgb, #f87171 10%, transparent);
+}
+
+.compose-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.compose-filter {
+  font: inherit;
+  font-size: 0.78rem;
+  flex: 1;
+  min-width: 180px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .compose-muted {
@@ -1823,6 +1854,18 @@ body[data-has-bg]::before {
 .chip-expose {
   border-style: dashed;
   color: var(--text-dim);
+}
+
+/* Same host port published by two+ services — an "address already in use" waiting
+   to happen. Overrides the port wash. */
+.chip-port-conflict {
+  border-color: color-mix(in srgb, #f87171 55%, var(--border));
+  background: color-mix(in srgb, #f87171 12%, var(--bg));
+}
+
+.chip .chip-suffix-warn {
+  color: #f87171;
+  background: color-mix(in srgb, #f87171 16%, transparent);
 }
 
 /* parse errors */
