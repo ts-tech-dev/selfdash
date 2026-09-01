@@ -133,7 +133,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | I13 | Config at rest: AES-256-GCM round-trip when `APP_SECRET` set; plaintext JSON when not | ✅ `unit/lib.crypto` · `unit/integrations.configCodec` |
 | I14 | Wrong key / tampered ciphertext fails closed | ✅ `unit/lib.crypto` |
 | I15 | Per-integration upstream parsing (qbit torrents, tautulli now-playing, …) | ⏭️ needs live services; covered indirectly by I2 + view helpers |
-| I16 | Sonarr/Radarr `calendar` view: maps upstream records to `{ts,title,subtitle}`, drops undated records, sorts ascending, picks the earliest of several release dates, honors `config.upcomingDays` for the window | ✅ `unit/integrations.arrCalendar` |
+| I16 | Sonarr/Radarr `calendar` view: maps upstream records to `{ts,title,subtitle,image}`, drops undated records, sorts ascending, picks the earliest of several release dates, carries the series/movie poster URL through as `image`, honors `config.upcomingDays` for the window | ✅ `unit/integrations.arrCalendar` |
 | I17 | `runAllViews`: fetches every declared view every poll (not just a configured subset), keyed by view key in `byView`; one view failing lands as `{type:'error'}` in its own slot without taking the rest down; every view failing throws so the poll is marked unreachable and last-good data stays on screen | ✅ `unit/integrations.views` |
 
 ### 3.7 Tile data proxies (`src/routes/tileData.js`)
@@ -330,10 +330,13 @@ Run after frontend changes or before a release. ~5 minutes.
    show different things (view selection is per-tile). With exactly one view
    checked and a second same-type integration configured, "Also include"
    appears; check it and confirm the tile merges both — for "Release
-   calendar" specifically, events from each source carry a small colored tag
-   naming which integration they came from. The calendar shows one month at a
-   time — ‹ › page between months (arrows disable past the data range), a
-   "Today" chip returns to the current month.
+   calendar" specifically, events from every source merge into one grid and a
+   day cell shows only the show/movie name (no source tag). Hover (or focus) a
+   day with releases → a floating card lists each release that day with its
+   poster + name + episode/release tag; the card escapes the tile's clipped
+   box. The calendar shows one month at a time — ‹ › page between months
+   (arrows disable past the data range), a "Today" chip returns to the current
+   month.
 10. **Tile scaling:** drop a **weather** tile and a **calendar** widget to the
     smallest (1×1) size → text isn't clipped: weather keeps icon + temp + one
     line, the calendar grid fills the tile with day tint/dots instead of event

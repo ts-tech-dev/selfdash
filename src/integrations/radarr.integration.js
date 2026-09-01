@@ -105,7 +105,12 @@ function fetchCalendar({ config, http }) {
   return fetchArrCalendar({
     config,
     http,
-    mapEvent: (m) => ({ ts: earliestReleaseTimestamp(m), title: m.title, subtitle: releaseKind(m) }),
+    mapEvent: (m) => ({
+      ts: earliestReleaseTimestamp(m),
+      title: m.title,
+      subtitle: releaseKind(m),
+      image: arrPoster(m.images),
+    }),
   });
 }
 

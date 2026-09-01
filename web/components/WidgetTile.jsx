@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 import { integrations, availableIntegrations } from '../store.js';
 
 function StatsView({ items }) {
@@ -88,7 +89,45 @@ function ymd(d) {
 const monthIndex = (d) => d.getFullYear() * 12 + d.getMonth();
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
+// A floating card listing everything that ships on one day — poster + name for each
+// release. Rendered through a portal into <body> because the tile is a `container: size`
+// box with `overflow: hidden`, which would otherwise clip (and contain) it.
+function DayPopover({ anchor, day, items }) {
+  const PW = 244;
+  const left = Math.max(8, Math.min(anchor.left, window.innerWidth - PW - 8));
+  const roomBelow = window.innerHeight - anchor.bottom;
+  const placeAbove = roomBelow < 240 && anchor.top > roomBelow;
+  const pos = placeAbove
+    ? { bottom: `${window.innerHeight - anchor.top + 6}px` }
+    : { top: `${anchor.bottom + 6}px` };
+
+  return createPortal(
+    <div class="widget-cal-pop" style={{ left: `${left}px`, width: `${PW}px`, ...pos }}>
+      <div class="widget-cal-pop-date">
+        {day.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+      </div>
+      <ul class="widget-cal-pop-list">
+        {items.map((it, i) => (
+          <li key={i}>
+            {it.image ? (
+              <img src={it.image} alt="" class="widget-cal-pop-art" loading="lazy" />
+            ) : (
+              <span class="widget-cal-pop-art widget-cal-pop-art-ph" />
+            )}
+            <span class="widget-cal-pop-info">
+              <span class="widget-cal-pop-title">{it.title}</span>
+              {it.subtitle && <span class="widget-cal-pop-sub">{it.subtitle}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>,
+    document.body
+  );
+}
+
 function MonthGrid({ month, today, byDay }) {
+  const [pop, setPop] = useState(null);
   const year = month.getFullYear();
   const mon = month.getMonth();
   const firstOfMonth = new Date(year, mon, 1);
@@ -99,6 +138,10 @@ function MonthGrid({ month, today, byDay }) {
   const cells = Array(lead).fill(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, mon, d));
   while (cells.length % 7) cells.push(null);
+
+  const openPop = (day, bucket) => (e) =>
+    setPop({ key: ymd(day), day, items: bucket, anchor: e.currentTarget.getBoundingClientRect() });
+  const closePop = () => setPop(null);
 
   return (
     <div
@@ -118,6 +161,11 @@ function MonthGrid({ month, today, byDay }) {
           <div
             key={i}
             class={`widget-cal-cell${isToday ? ' widget-cal-today' : ''}${bucket ? ' widget-cal-has' : ''}`}
+            tabIndex={bucket ? 0 : undefined}
+            onMouseEnter={bucket ? openPop(day, bucket) : undefined}
+            onMouseLeave={bucket ? closePop : undefined}
+            onFocus={bucket ? openPop(day, bucket) : undefined}
+            onBlur={bucket ? closePop : undefined}
           >
             <span class="widget-cal-daynum">{day.getDate()}</span>
             {bucket && (
@@ -126,9 +174,8 @@ function MonthGrid({ month, today, byDay }) {
                   <span
                     key={j}
                     class="widget-cal-event"
-                    title={[e.title, e.subtitle, e.source].filter(Boolean).join(' — ')}
+                    title={[e.title, e.subtitle].filter(Boolean).join(' — ')}
                   >
-                    {e.source && <span class="widget-cal-event-src">{e.source}</span>}
                     {e.title}
                   </span>
                 ))}
@@ -140,6 +187,7 @@ function MonthGrid({ month, today, byDay }) {
           </div>
         );
       })}
+      {pop && <DayPopover anchor={pop.anchor} day={pop.day} items={pop.items} />}
     </div>
   );
 }

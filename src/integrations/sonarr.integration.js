@@ -120,6 +120,7 @@ function fetchCalendar({ config, http }) {
         ts: airTimestamp(e),
         title: e.series?.title || e.title || 'Unknown',
         subtitle: [tag, epName].filter(Boolean).join(' · ') || undefined,
+        image: arrPoster(e.series?.images),
       };
     },
   });

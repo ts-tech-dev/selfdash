@@ -139,7 +139,8 @@ export function arrQuality(record) {
 // Release calendar for a month-grid visualization. Pulls /calendar over a window that
 // starts a little in the past (so "aired this week" is still visible) and runs
 // `config.upcomingDays` (default 35) ahead. `mapEvent(record)` returns
-// { ts, title, subtitle } — rows without a finite `ts` are dropped. The frontend buckets
+// { ts, title, subtitle, image } — rows without a finite `ts` are dropped. `image` is an
+// optional poster URL the frontend shows in the day-cell hover card. The frontend buckets
 // by local day, so we only pass the instant, not a pre-formatted date.
 export async function fetchArrCalendar({
   config,
@@ -166,7 +167,9 @@ export async function fetchArrCalendar({
   const items = list
     .map((r) => {
       const ev = mapEvent(r);
-      return ev && Number.isFinite(ev.ts) ? { ts: ev.ts, title: ev.title, subtitle: ev.subtitle } : null;
+      return ev && Number.isFinite(ev.ts)
+        ? { ts: ev.ts, title: ev.title, subtitle: ev.subtitle, image: ev.image }
+        : null;
     })
     .filter(Boolean)
     .sort((a, b) => a.ts - b.ts);

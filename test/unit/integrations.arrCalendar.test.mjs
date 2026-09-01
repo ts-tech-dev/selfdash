@@ -105,6 +105,43 @@ test('sonarr calendar view: tags season/episode and drops episodes with no air d
   assert.ok(calendarUrl(http).includes('includeSeries=true'));
 });
 
+test('radarr calendar view: carries the movie poster URL through as `image`', async () => {
+  const http = fakeHttp([
+    {
+      title: 'Poster Movie',
+      digitalRelease: '2026-09-05T00:00:00Z',
+      images: [{ coverType: 'poster', remoteUrl: 'https://image.tmdb.org/t/p/original/abc.jpg' }],
+    },
+  ]);
+  const config = { url: 'http://radarr.local', apiKey: 'k' };
+
+  const result = await new RadarrIntegration().fetchData({ config, http });
+  const model = result.byView.calendar;
+
+  assert.equal(model.items[0].image, 'https://image.tmdb.org/t/p/w154/abc.jpg');
+});
+
+test('sonarr calendar view: carries the series poster URL through as `image`', async () => {
+  const http = fakeHttp([
+    {
+      series: {
+        title: 'Show A',
+        images: [{ coverType: 'poster', remoteUrl: 'https://artworks.thetvdb.com/banners/posters/1.jpg' }],
+      },
+      seasonNumber: 1,
+      episodeNumber: 2,
+      title: 'The Pilot',
+      airDateUtc: '2026-09-06T20:00:00Z',
+    },
+  ]);
+  const config = { url: 'http://sonarr.local', apiKey: 'k' };
+
+  const result = await new SonarrIntegration().fetchData({ config, http });
+  const model = result.byView.calendar;
+
+  assert.equal(model.items[0].image, 'https://artworks.thetvdb.com/banners/posters/1.jpg');
+});
+
 test('arr calendar helper honors config.upcomingDays for the window end date', async () => {
   const http = fakeHttp([]);
   const config = { url: 'http://radarr.local', apiKey: 'k', upcomingDays: 90 };
