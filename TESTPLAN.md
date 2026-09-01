@@ -357,11 +357,14 @@ Run after frontend changes or before a release. ~5 minutes.
     line, the calendar grid fills the tile with day tint/dots instead of event
     titles. Resize larger → detail comes back.
 11. **Compose panel:** with a compose dir configured, the "Ports & volumes"
-    section reads as part of the page — no wrapping card/shadow, full width,
-    an uppercase section heading + hairline rule like a tile group. Stacks are
-    a flat divided list (not nested cards); only published host-port chips
-    carry a faint accent tint, everything else is neutral. Expand a stack →
-    per-service ports/volumes unchanged.
+    panel is one surface matching the tiles (same border/radius/shadow; frosts
+    on the glass/gradient themes), full width so it lines up with the grid.
+    Inside: an uppercase section-heading head row + hairline rule, a flat
+    divided stack list (no nested cards), chips tinted to `--bg` for
+    definition, and only published host-port chips carry a faint accent wash.
+    Expand a stack → per-service ports/volumes unchanged. Check it on the
+    glass theme — the panel blurs the background like the tiles, not
+    see-through.
 12. **Backup:** export a zip; re-import it → app restarts, data intact.
 13. **Config:** export YAML, edit the site title, re-import → applied.
 14. **PWA:** install, go offline, reload → shell still loads.

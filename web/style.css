@@ -95,7 +95,8 @@ body[data-has-bg]::before {
 }
 [data-theme='glass'] .tile,
 [data-theme='glass'] .page-tab,
-[data-theme='glass'] .modal {
+[data-theme='glass'] .modal,
+[data-theme='glass'] .compose-panel {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -125,7 +126,8 @@ body[data-has-bg]::before {
 }
 [data-theme='gradient'] .tile,
 [data-theme='gradient'] .page-tab,
-[data-theme='gradient'] .modal {
+[data-theme='gradient'] .modal,
+[data-theme='gradient'] .compose-panel {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -1483,11 +1485,17 @@ body[data-has-bg]::before {
 
 /* Compose scan panel */
 
-/* A plain page section, not a floating card — same footprint and feel as the
-   tile groups above it (transparent, section-heading + a thin rule). */
+/* One surface that matches the tiles above it — same border / radius / shadow, and
+   it picks up the glass/gradient blur via the theme rules near the top of this file.
+   Full width (no max-width) so it lines up with the grid; the clutter fix is on the
+   inside — no nested cards, calmer chips, a section-heading head row. */
 .compose-panel {
   margin: 22px 0 0;
-  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 16px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .compose-panel-head {
@@ -1497,7 +1505,7 @@ body[data-has-bg]::before {
   gap: 8px 16px;
   flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
-  padding: 10px 2px 6px;
+  padding: 10px 0 6px;
   margin-bottom: 12px;
 }
 
@@ -1580,7 +1588,7 @@ body[data-has-bg]::before {
   gap: 10px;
   align-items: baseline;
   flex-wrap: wrap;
-  padding: 2px 2px 12px;
+  padding: 2px 0 12px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
@@ -1612,7 +1620,7 @@ body[data-has-bg]::before {
 
 .compose-stack > summary {
   cursor: pointer;
-  padding: 9px 2px;
+  padding: 9px 6px;
   display: grid;
   grid-template-columns: 12px auto 1fr;
   align-items: center;
@@ -1676,7 +1684,7 @@ body[data-has-bg]::before {
 .compose-stack-body {
   display: flex;
   flex-direction: column;
-  padding: 4px 2px 14px 21px;
+  padding: 4px 6px 14px 27px;
 }
 
 .compose-service {
@@ -1757,7 +1765,8 @@ body[data-has-bg]::before {
   padding: 1px 7px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  /* chips sit on the panel's --surface now, so tint down to --bg for definition */
+  background: var(--bg);
   max-width: 100%;
   min-width: 0;
 }
@@ -1808,7 +1817,7 @@ body[data-has-bg]::before {
    border on expose) rather than a per-type hue. */
 .chip-port {
   border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
 }
 
 .chip-expose {
