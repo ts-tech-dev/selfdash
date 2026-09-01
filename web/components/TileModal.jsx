@@ -33,7 +33,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     url: tile?.url || '',
     icon: tile?.icon || '',
     description: tile?.description || '',
-    size: tile ? sizeKeyFromWH(tile.w, tile.h) : 'M',
+    size: tile ? sizeKeyFromWH(tile.w, tile.h) || 'custom' : 'M',
     open_mode: tile?.open_mode || 'newtab',
     iframe: { ...DEFAULT_IFRAME_CONFIG, ...(tile?.open_mode === 'iframe' ? tile.config : {}) },
     integration_id: tile?.integration_id || integrations.value[0]?.id || '',
@@ -86,7 +86,9 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
 
   function submit(e) {
     e.preventDefault();
-    const { w, h } = SIZE_PRESETS[form.size];
+    // 'custom' = keep whatever size the tile was drag-resized to; presets set w/h.
+    const { w, h } =
+      form.size === 'custom' ? { w: tile.w, h: tile.h } : SIZE_PRESETS[form.size];
     const title = form.title.trim();
 
     if (isWidget) {
@@ -194,12 +196,16 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
         <label>
           Size
           <select value={form.size} onChange={(e) => update('size', e.target.value)}>
+            {form.size === 'custom' && (
+              <option value="custom">custom ({tile.w}×{tile.h})</option>
+            )}
             {Object.keys(SIZE_PRESETS).map((key) => (
               <option key={key} value={key}>
                 {key}
               </option>
             ))}
           </select>
+          <span class="settings-hint">or drag a tile's edges on the page to resize</span>
         </label>
 
         {isLink && (

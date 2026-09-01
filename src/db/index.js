@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { backfillTileLayout } from './backfillLayout.js';
 
 // node:sqlite is experimental on Node 22. The `--disable-warning=ExperimentalWarning`
 // CLI flag (set alongside --experimental-sqlite in package.json / Dockerfile CMD)
@@ -17,6 +18,7 @@ export function openDatabase(dataDir) {
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec('PRAGMA foreign_keys = ON;');
   runMigrations(db);
+  backfillTileLayout(db);
   ensureDefaultPage(db);
   return db;
 }

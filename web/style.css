@@ -290,6 +290,22 @@ body[data-has-bg]::before {
   font-size: 0.9rem;
   z-index: 2;
   user-select: none;
+  touch-action: none;
+}
+
+.tile-grid-editing .tile-drag-handle {
+  color: var(--accent);
+  font-size: 1.05rem;
+  padding: 2px 4px;
+}
+.tile-dragging {
+  z-index: 20 !important;
+  opacity: 0.9;
+  cursor: grabbing;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.tile-dragging .tile-drag-handle {
+  cursor: grabbing;
 }
 
 /* Online/offline dot, top-right corner of every tile. */
@@ -322,30 +338,84 @@ body[data-has-bg]::before {
   padding-right: 22px;
 }
 
-.tile-resize-handle {
+/* Resize grips: only shown while the page is in edit mode. Right edge = width,
+   bottom edge = height, corner = both. Visible (faint) at rest so they're easy
+   to grab, solid on hover / while dragging. */
+.tile-resize {
   position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 14px;
-  height: 14px;
-  line-height: 14px;
-  text-align: center;
-  font-size: 0.6rem;
-  color: var(--text-dim);
-  cursor: nwse-resize;
-  z-index: 3;
+  z-index: 6;
   opacity: 0;
+  background: var(--accent);
   user-select: none;
-  transition: opacity 0.15s ease;
+  touch-action: none;
+  transition: opacity 0.12s ease;
 }
-
-.tile:hover .tile-resize-handle {
-  opacity: 0.55;
+.tile-grid-editing .tile .tile-resize {
+  opacity: 0.35;
 }
-
-.tile-resize-handle:hover {
+.tile-grid-editing .tile:hover .tile-resize,
+.tile-resizing .tile-resize {
+  opacity: 0.7;
+}
+.tile-resize:hover {
   opacity: 1 !important;
-  color: var(--accent);
+}
+
+.tile-resize-e {
+  top: 18%;
+  bottom: 18%;
+  right: 0;
+  width: 7px;
+  border-radius: 4px 0 0 4px;
+  cursor: ew-resize;
+}
+.tile-resize-s {
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  height: 7px;
+  border-radius: 4px 4px 0 0;
+  cursor: ns-resize;
+}
+.tile-resize-se {
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 7px 0 8px 0;
+  cursor: nwse-resize;
+  color: #08101f;
+  font-size: 0.7rem;
+  line-height: 20px;
+  text-align: center;
+}
+
+.tile-resizing {
+  z-index: 20 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Covers the page while a tile is being dragged/resized so pointer moves aren't
+   swallowed by iframe tiles and stray hovers don't fire. */
+.tile-drag-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+}
+
+/* Live "3×2" readout shown while resizing. */
+.tile-size-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 7;
+  background: var(--accent);
+  color: #08101f;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  pointer-events: none;
 }
 
 .tile-toolbar {

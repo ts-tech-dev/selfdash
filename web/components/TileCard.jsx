@@ -40,16 +40,51 @@ function appearanceStyle(tile) {
   return style;
 }
 
-// Per-tile controls (drag handle, Edit button, resize grip) only appear while the page is
-// in edit mode; Delete now lives inside the edit modal rather than on the tile itself.
-export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride }) {
-  const w = sizeOverride?.w ?? tile.w;
-  const h = sizeOverride?.h ?? tile.h;
-  const gridSpan = { gridColumn: `span ${w}`, gridRow: `span ${h}`, ...appearanceStyle(tile) };
+// Where the tile sits in the grid. `placement.colStart` present -> explicit
+// free placement; absent (narrow screens) -> plain span with auto-flow.
+function placementStyle(tile, placement) {
+  const w = placement?.w ?? tile.w;
+  const h = placement?.h ?? tile.h;
+  if (placement?.colStart) {
+    return {
+      gridColumn: `${placement.colStart} / span ${w}`,
+      gridRow: `${placement.rowStart} / span ${h}`,
+    };
+  }
+  return { gridColumn: `span ${w}`, gridRow: `span ${h}` };
+}
+
+// Per-tile controls (drag handle, Edit button, resize grips) only appear while the
+// page is in edit mode; Delete lives inside the edit modal.
+export function TileCard({
+  tile,
+  editing,
+  narrow,
+  placement,
+  dragging,
+  resizing,
+  sizeLabel,
+  onEdit,
+  onDragStart,
+  onResizeStart,
+}) {
+  const style = { ...placementStyle(tile, placement), ...appearanceStyle(tile) };
   const hideTitle = Boolean(tile.config?.appearance?.hideTitle);
 
-  const dragHandle = editing && (
-    <span class="tile-drag-handle" title="Drag to reorder">
+  const panel = registryEntry(tile.type);
+  const className = [
+    'tile',
+    panel ? 'tile-panel-card' : '',
+    tile.type === 'widget' ? 'tile-widget' : '',
+    tile.open_mode === 'iframe' ? 'tile-iframe' : '',
+    dragging ? 'tile-dragging' : '',
+    resizing ? 'tile-resizing' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const dragHandle = editing && !narrow && (
+    <span class="tile-drag-handle" title="Drag to move" onPointerDown={onDragStart}>
       ⋮⋮
     </span>
   );
@@ -58,32 +93,51 @@ export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride })
       {t('tile.edit')}
     </button>
   );
-  const resizeHandle = editing && (
-    <span class="tile-resize-handle" title="Drag to resize" onPointerDown={onResizeStart}>
-      ◢
-    </span>
+  const resizeGrips = editing && (
+    <>
+      <span
+        class="tile-resize tile-resize-e"
+        title="Drag to change width"
+        onPointerDown={(e) => onResizeStart('x', e)}
+      />
+      {!narrow && (
+        <span
+          class="tile-resize tile-resize-s"
+          title="Drag to change height"
+          onPointerDown={(e) => onResizeStart('y', e)}
+        />
+      )}
+      <span
+        class="tile-resize tile-resize-se"
+        title="Drag to resize"
+        onPointerDown={(e) => onResizeStart(narrow ? 'x' : 'both', e)}
+      >
+        ⤡
+      </span>
+    </>
   );
+  const badge = sizeLabel && <span class="tile-size-badge">{sizeLabel}</span>;
 
   // Built-in info/data panel tile (clock, weather, notes, …).
-  const panel = registryEntry(tile.type);
   if (panel) {
     const Body = panel.Component;
     return (
-      <div class="tile tile-panel-card" data-id={tile.id} style={gridSpan}>
+      <div class={className} data-id={tile.id} style={style}>
         <div class="tile-toolbar">
           {dragHandle}
           {!hideTitle && <span class="tile-toolbar-title">{tile.title || panel.label}</span>}
           {editButton && <div class="tile-toolbar-actions">{editButton}</div>}
         </div>
         <Body tile={tile} />
-        {resizeHandle}
+        {resizeGrips}
+        {badge}
       </div>
     );
   }
 
   if (tile.type === 'widget') {
     return (
-      <div class="tile tile-widget" data-id={tile.id} style={gridSpan}>
+      <div class={className} data-id={tile.id} style={style}>
         <HealthDot {...widgetHealth(tile)} />
         <div class="tile-toolbar">
           {dragHandle}
@@ -91,7 +145,8 @@ export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride })
           {editButton && <div class="tile-toolbar-actions">{editButton}</div>}
         </div>
         <WidgetTile tile={tile} />
-        {resizeHandle}
+        {resizeGrips}
+        {badge}
       </div>
     );
   }
@@ -104,7 +159,7 @@ export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride })
         : { aspectRatio: cfg.aspectRatio || '16/9', height: 'auto' };
 
     return (
-      <div class="tile tile-iframe" data-id={tile.id} style={gridSpan}>
+      <div class={className} data-id={tile.id} style={style}>
         <HealthDot {...urlHealth(tile.url)} />
         <div class="tile-toolbar">
           {dragHandle}
@@ -121,7 +176,8 @@ export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride })
             style={iframeStyle}
           />
         </div>
-        {resizeHandle}
+        {resizeGrips}
+        {badge}
       </div>
     );
   }
@@ -129,7 +185,7 @@ export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride })
   const target = tile.open_mode === 'newtab' ? '_blank' : undefined;
 
   return (
-    <div class="tile" data-id={tile.id} style={gridSpan}>
+    <div class={className} data-id={tile.id} style={style}>
       <HealthDot {...urlHealth(tile.url)} />
       {dragHandle}
       <a
@@ -143,7 +199,8 @@ export function TileCard({ tile, editing, onEdit, onResizeStart, sizeOverride })
         {tile.description && <span class="tile-desc">{tile.description}</span>}
       </a>
       {editButton && <div class="tile-actions">{editButton}</div>}
-      {resizeHandle}
+      {resizeGrips}
+      {badge}
     </div>
   );
 }

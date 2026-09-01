@@ -26,16 +26,18 @@ export default async function tilesRoutes(app) {
       return reply.code(400).send({ error: err.message });
     }
 
-    const w = clampInt(Number(body.w) || 2, 1, 6);
-    const h = clampInt(Number(body.h) || 1, 1, 6);
+    const w = clampInt(Number(body.w) || 2, 1, 12);
+    const h = clampInt(Number(body.h) || 1, 1, 12);
+    const x = clampInt(Number(body.x) || 0, 0, 11);
+    const y = clampInt(Number(body.y) || 0, 0, 4096);
     const maxPos = db
       .prepare('SELECT COALESCE(MAX(position), -1) AS m FROM tiles WHERE page_id = ?')
       .get(pageId).m;
 
     const info = db
       .prepare(
-        `INSERT INTO tiles (page_id, type, title, url, icon, description, open_mode, integration_id, w, h, position, config_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO tiles (page_id, type, title, url, icon, description, open_mode, integration_id, x, y, w, h, position, config_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         pageId,
@@ -46,6 +48,8 @@ export default async function tilesRoutes(app) {
         body.description || null,
         fields.open_mode,
         fields.integration_id,
+        x,
+        y,
         w,
         h,
         maxPos + 1,
@@ -74,13 +78,15 @@ export default async function tilesRoutes(app) {
       title: body.title !== undefined ? body.title : existing.title,
       icon: body.icon !== undefined ? body.icon : existing.icon,
       description: body.description !== undefined ? body.description : existing.description,
-      w: body.w !== undefined ? clampInt(Number(body.w), 1, 6) : existing.w,
-      h: body.h !== undefined ? clampInt(Number(body.h), 1, 6) : existing.h,
+      x: body.x !== undefined ? clampInt(Number(body.x), 0, 11) : existing.x,
+      y: body.y !== undefined ? clampInt(Number(body.y), 0, 4096) : existing.y,
+      w: body.w !== undefined ? clampInt(Number(body.w), 1, 12) : existing.w,
+      h: body.h !== undefined ? clampInt(Number(body.h), 1, 12) : existing.h,
     };
 
     db.prepare(
       `UPDATE tiles SET type = ?, title = ?, url = ?, icon = ?, description = ?, open_mode = ?,
-       integration_id = ?, w = ?, h = ?, config_json = ?
+       integration_id = ?, x = ?, y = ?, w = ?, h = ?, config_json = ?
        WHERE id = ?`
     ).run(
       type,
@@ -90,6 +96,8 @@ export default async function tilesRoutes(app) {
       next.description,
       fields.open_mode,
       fields.integration_id,
+      next.x,
+      next.y,
       next.w,
       next.h,
       JSON.stringify(fields.config),

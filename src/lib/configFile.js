@@ -88,6 +88,8 @@ export function buildConfigDoc(db, crypto, registry) {
           const cfg = JSON.parse(t.config_json || '{}');
           const out = { type: t.type };
           if (t.title) out.title = t.title;
+          if (t.x) out.x = t.x;
+          if (t.y) out.y = t.y;
           out.w = t.w;
           out.h = t.h;
           if (t.type === 'widget') {
@@ -176,8 +178,8 @@ export function importConfigDoc(app, doc, { includeSettings = true } = {}) {
       'INSERT INTO pages (name, slug, position, background, options_json) VALUES (?, ?, ?, ?, ?)'
     );
     const insTile = db.prepare(
-      `INSERT INTO tiles (page_id, type, title, url, icon, description, open_mode, integration_id, w, h, position, config_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO tiles (page_id, type, title, url, icon, description, open_mode, integration_id, x, y, w, h, position, config_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     const usedSlugs = new Set();
     pagesIn.forEach((p, pi) => {
@@ -220,8 +222,10 @@ export function importConfigDoc(app, doc, { includeSettings = true } = {}) {
           type === 'widget' ? null : t.description || null,
           f.open_mode,
           f.integration_id,
-          clampInt(t.w ?? 2, 1, 6),
-          clampInt(t.h ?? 1, 1, 6),
+          clampInt(t.x ?? 0, 0, 11),
+          clampInt(t.y ?? 0, 0, 4096),
+          clampInt(t.w ?? 2, 1, 12),
+          clampInt(t.h ?? 1, 1, 12),
           ti,
           JSON.stringify(f.config)
         );

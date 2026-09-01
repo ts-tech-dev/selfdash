@@ -22,7 +22,6 @@
   "devDependencies": {
     "@preact/signals": "^2.11.1",
     "esbuild": "^0.24.0",
-    "preact": "^10.29.8",
-    "sortablejs": "^1.15.7"
+    "preact": "^10.29.8"
   }
 }
