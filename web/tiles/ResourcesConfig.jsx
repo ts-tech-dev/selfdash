@@ -45,12 +45,17 @@ export function ResourcesConfig({ value, onChange }) {
   const diskPaths = Array.isArray(v.diskPaths) ? v.diskPaths : v.diskPath ? [v.diskPath] : ['/'];
   const netIfaces = Array.isArray(v.netIfaces) ? v.netIfaces : v.netIface ? [v.netIface] : [];
   const [ifaceNames, setIfaceNames] = useState([]);
+  const [busiest, setBusiest] = useState('');
 
   useEffect(() => {
     let alive = true;
     fetch('/api/host/stats')
       .then((r) => (r.ok ? r.json() : {}))
-      .then((d) => alive && setIfaceNames(d.netInterfaces || []))
+      .then((d) => {
+        if (!alive) return;
+        setIfaceNames(d.netInterfaces || []);
+        setBusiest(d.netBusiest || '');
+      })
       .catch(() => {});
     return () => {
       alive = false;
@@ -86,13 +91,18 @@ export function ResourcesConfig({ value, onChange }) {
           <datalist id="selfdash-iface-list">
             {ifaceNames
               .filter((n) => !/^veth/.test(n) && !/^br-[0-9a-f]{12}$/.test(n))
+              .sort((a, b) => (a === busiest ? -1 : b === busiest ? 1 : 0))
               .map((n) => (
-                <option key={n} value={n} />
+                <option key={n} value={n} label={n === busiest ? `${n} — most traffic` : undefined} />
               ))}
           </datalist>
           <RepeatList
             label="Network interfaces"
-            hint="Leave empty to auto-pick the busiest interface."
+            hint={
+              busiest
+                ? `Leave empty to auto-pick the busiest interface (currently ${busiest}).`
+                : 'Leave empty to auto-pick the busiest interface.'
+            }
             values={netIfaces}
             onChange={(next) => onChange('netIfaces', next)}
             placeholder="eth0 · wg0 · br-lan"

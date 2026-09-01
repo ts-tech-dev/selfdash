@@ -147,7 +147,8 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | D6 | `GET /api/tile/customapi/:id` → 404 if tile isn't a `customapi` | ✅ `api/tileData` |
 | D7 | `customapi` maps JSON to a stats/list model (`buildModel` + `getPath`) | ✅ `api/tileData` · `unit/lib.apiMap` |
 | D8 | `customapi` non-JSON body / upstream 5xx → 502 | ✅ `api/tileData` |
-| D9 | `GET /api/host/stats` returns cpu/mem/disk (200) or a clean 500 in a locked-down sandbox | ✅ `api/tileData` |
+| D9 | `GET /api/host/stats` returns cpu/mem/disk (200) or a clean 500 in a locked-down sandbox; payload carries `netBusiest` (auto-pick hint for the config UI) | ✅ `api/tileData` |
+| D9b | `fmtRate` uses adaptive units (B/s → KB/s → MB/s) so sub-MB/s throughput isn't flattened to "0.0 MB/s" | ✅ `unit/shared.misc` |
 | D10 | `getPath` supports `a.b`, `a[0].b`, `a.b[].c` wildcard | ✅ `unit/lib.apiMap` |
 | D11 | Feed/ICS parser edge cases: Atom alt links, CDATA/entities, ICS unfolding, all-day, horizon filter | ✅ `unit/lib.feedParse` |
 

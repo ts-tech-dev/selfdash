@@ -1,4 +1,5 @@
 import { useTileData } from './useTileData.js';
+import { fmtRate } from '../../src/shared/format.js';
 
 function Bar({ label, pct, detail }) {
   const p = Math.max(0, Math.min(100, Math.round(pct || 0)));
@@ -16,7 +17,6 @@ function Bar({ label, pct, detail }) {
 }
 
 const fmtGB = (b) => `${(b / 1024 ** 3).toFixed(1)} GB`;
-const fmtRate = (b) => `${(b / 1024 / 1024).toFixed(1)} MB/s`;
 
 export function ResourcesTile({ tile }) {
   const c = tile.config || {};

@@ -74,14 +74,12 @@ async function readNets(wanted = []) {
     ifaces[name] = { rx: Number(m[2]), tx: Number(m[3]) };
   }
   const names = Object.keys(ifaces).sort();
+  const busiest = Object.entries(ifaces).sort(
+    (a, b) => b[1].rx + b[1].tx - a[1].rx - a[1].tx
+  )[0]?.[0];
 
   let picks = wanted.filter(Boolean);
-  if (!picks.length) {
-    const busiest = Object.entries(ifaces).sort(
-      (a, b) => b[1].rx + b[1].tx - a[1].rx - a[1].tx
-    )[0]?.[0];
-    picks = busiest ? [busiest] : [];
-  }
+  if (!picks.length) picks = busiest ? [busiest] : [];
 
   const rateFor = (iface) => {
     if (!ifaces[iface]) return { iface, error: 'no such interface' };
@@ -99,7 +97,7 @@ async function readNets(wanted = []) {
 
   const nets = picks.map(rateFor);
   lastNet = { ...ifaces, t: now };
-  return { nets, names };
+  return { nets, names, busiest };
 }
 
 export async function hostStats({ diskPaths = ['/'], ifaces = [] } = {}) {
@@ -107,7 +105,7 @@ export async function hostStats({ diskPaths = ['/'], ifaces = [] } = {}) {
     readCpu().catch(() => null),
     readMem().catch(() => null),
     readDisks(diskPaths).catch(() => []),
-    readNets(ifaces).catch(() => ({ nets: [], names: [] })),
+    readNets(ifaces).catch(() => ({ nets: [], names: [], busiest: null })),
   ]);
   // `disk` / `net` kept as the first entry for backward compatibility.
   return {
@@ -119,5 +117,6 @@ export async function hostStats({ diskPaths = ['/'], ifaces = [] } = {}) {
     net: netResult.nets[0] || null,
     nets: netResult.nets,
     netInterfaces: netResult.names,
+    netBusiest: netResult.busiest || null,
   };
 }
