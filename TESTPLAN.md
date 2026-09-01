@@ -56,7 +56,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | P4 | `POST` de-duplicates slugs (`media-center`, `media-center-2`) | ✅ `api/pages` |
 | P5 | `POST` rejects blank/whitespace name (400) | ✅ `api/pages` |
 | P6 | `PATCH` updates name + legacy `background` string | ✅ `api/pages` |
-| P7 | `PATCH` sanitizes `options` (grid clamp, background clamp, unknown keys dropped) | ✅ `api/pages` · `unit/shared.misc` |
+| P7 | `PATCH` sanitizes `options` (grid clamp, background clamp, unknown keys dropped; per-page `appearance` keeps a known `theme` + `#rrggbb` accent/textColor only; `customJs` stored, `customJsEnabled` only when truthy) | ✅ `api/pages` · `unit/shared.misc` |
 | P8 | `PATCH` **merges** options rather than replacing | ✅ `api/pages` |
 | P9 | `PATCH` unknown page → 404 | ✅ `api/pages` |
 | P10 | `DELETE` a page (204); tiles cascade-delete | ✅ `api/pages` · `unit/db.migrations` |
@@ -88,6 +88,8 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T20 | `mergeModels` ("Also include"): `queue`/`list` concatenate rows and tag each `subtitle` with its source (e.g. which download client); `calendar` merges + sorts by `ts` with a `source` tag; `stats`/`nowplaying`/unknown don't merge (→ null); missing / wrong-type sources are skipped | ✅ `unit/shared.mergeModels` |
 | T21 | "Also include" candidate list = integrations sharing the primary's `mergeGroup` **and** the picked view key — so a download-client queue merges qbittorrent + sabnzbd only, never radarr/sonarr | 🖐️ §9 (filter logic in `TileModal.jsx`; `mergeGroup` values covered by I1) |
 | T22 | `commonConfig` keeps `appearance.textColor` only when a `#rrggbb` hex; `TileCard` maps it (and a derived `--text-dim`) to CSS vars on the tile root | ✅ `unit/shared.tileConfig` (apply path in `TileCard.jsx`) |
+| T23 | `contrast.js`: `parseColor` (hex 3/6, rgb, rgba flattened over white), `contrastRatio` (21 for black/white, 1 for equal, order-independent, null on unparseable); drives the low-contrast hint on the text-colour pickers | ✅ `unit/shared.contrast` |
+| T24 | `themes.js` `THEMES` list (8 built-ins incl. `dracula`, `oled`) is the single source for the settings route, page-options sanitiser, and settings UI | ✅ `api/settings` (accepts `dracula`/`oled`, rejects unknown) |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
@@ -328,12 +330,21 @@ Run after frontend changes or before a release. ~5 minutes.
    it on save, no typing. In page edit mode, each group heading shows ✎/✕:
    ✎ renames the group across all its tiles (collapse state follows the new
    name); ✕ asks to confirm, then its tiles become ungrouped — none deleted.
-6. **Appearance:** change theme, dark mode, accent, font — applied live.
+6. **Appearance:** change theme (incl. new `dracula` / `oled`), dark mode,
+   accent, font — applied live.
    Tick "Custom text color", pick a colour → all page text (headings, group
    labels, compose panel, tile bodies) recolours live; secondary text follows
-   a derived dimmer shade. Untick → back to the theme. Per tile: Group &
-   appearance → "Text color" recolours just that tile; "Reset appearance"
-   clears it.
+   a derived dimmer shade. Pick a mid-grey → a "⚠ Low contrast" hint appears.
+   Untick → back to the theme. Per tile: Group & appearance → "Text color"
+   recolours just that tile (same contrast hint); "Reset appearance" clears it.
+   **Theme sharing:** expand it, "Export current look" fills the box (and
+   copies to clipboard); paste a `{ "theme": "dracula", "accent": "#bd93f9" }`
+   blob into the import box → Apply → live, bad values rejected with a message.
+6b. **Per-page appearance:** Settings → Pages → a page → "Layout & appearance"
+   → set Theme / Accent / Text color for that page only → switch to it and the
+   look changes; other pages unaffected; blank = inherit global. Per-page JS
+   textarea runs only when both its checkbox and the global "Enable custom
+   JavaScript" are on. Custom CSS/JS editors are monospace and scroll sideways.
 7. **Background:** paste a URL → Save → full-page image appears behind tiles.
    Upload an image → Save → same. Set per-page background + blur/dim/opacity on
    one page only; confirm it overrides the global on that page and not others.

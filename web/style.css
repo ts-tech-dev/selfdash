@@ -2375,6 +2375,22 @@ body[data-has-bg]::before {
   --bg: #faf4ed; --surface: #fffaf3; --border: #f2e9e1; --text: #575279; --text-dim: #797593;
 }
 
+/* Theme: dracula */
+[data-theme='dracula'][data-mode='dark'] {
+  --bg: #282a36; --surface: #343746; --border: #44475a; --text: #f8f8f2; --text-dim: #a6accd;
+}
+[data-theme='dracula'][data-mode='light'] {
+  --bg: #f4f4fb; --surface: #ffffff; --border: #dfe0ec; --text: #2a2c3a; --text-dim: #6c6f85;
+}
+
+/* Theme: oled — near-black surfaces for OLED panels */
+[data-theme='oled'][data-mode='dark'] {
+  --bg: #000000; --surface: #0c0c0d; --border: #232326; --text: #f2f2f2; --text-dim: #8a8a90;
+}
+[data-theme='oled'][data-mode='light'] {
+  --bg: #ffffff; --surface: #f6f6f6; --border: #e2e2e4; --text: #0a0a0a; --text-dim: #5f5f66;
+}
+
 /* --- Named tile groups --- */
 .tile-group-header {
   grid-column: 1 / -1;
@@ -2472,6 +2488,24 @@ body[data-has-bg]::before {
   font: inherit;
   font-size: 0.85rem;
   resize: vertical;
+}
+
+/* Code editors (custom CSS / JS, theme JSON) — monospace, no wrap, scrolls sideways. */
+.code-textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, "Courier New", monospace !important;
+  font-size: 0.8rem !important;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+.contrast-warn {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: #f59e0b;
 }
 
 .icon-picker {

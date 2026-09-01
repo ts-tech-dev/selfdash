@@ -39,6 +39,22 @@ test('sanitizePageOptions: drops unknown keys, keeps customCss', () => {
   assert.deepEqual(o, { customCss: '.tile{}' });
 });
 
+test('sanitizePageOptions: per-page appearance keeps a known theme + hex colours only', () => {
+  assert.deepEqual(
+    sanitizePageOptions({ appearance: { theme: 'dracula', accent: '#bd93f9', textColor: '#f8f8f2' } }).appearance,
+    { theme: 'dracula', accent: '#bd93f9', textColor: '#f8f8f2' }
+  );
+  // unknown theme + non-hex colour dropped -> empty appearance omitted entirely
+  assert.deepEqual(sanitizePageOptions({ appearance: { theme: 'neon', accent: 'red' } }), {});
+});
+
+test('sanitizePageOptions: per-page customJs stored; customJsEnabled only when truthy', () => {
+  const o = sanitizePageOptions({ customJs: 'console.log(1)', customJsEnabled: true });
+  assert.equal(o.customJs, 'console.log(1)');
+  assert.equal(o.customJsEnabled, true);
+  assert.equal('customJsEnabled' in sanitizePageOptions({ customJs: 'x', customJsEnabled: false }), false);
+});
+
 test('fmtRate: steps down to KB/s and B/s so small rates are not shown as "0.0 MB/s"', () => {
   assert.equal(fmtRate(0), '0 B/s');
   assert.equal(fmtRate(512), '512 B/s');

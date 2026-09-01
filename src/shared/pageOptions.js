@@ -1,7 +1,11 @@
+import { THEME_SET } from './themes.js';
+
 const clampN = (v, min, max, dflt) => {
   const n = Number(v);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt;
 };
+
+const HEX_RE = /^#[0-9a-f]{6}$/i;
 
 // Keep only known page-option keys, bounded. Shared by the pages route and the
 // YAML config importer.
@@ -25,6 +29,20 @@ export function sanitizePageOptions(o = {}) {
       opacity: clampN(b.opacity, 0, 100, 100),
     };
   }
+  // Per-page appearance overrides — each optional; absent means "inherit the global".
+  if (o.appearance && typeof o.appearance === 'object') {
+    const a = o.appearance;
+    const app = {};
+    if (THEME_SET.has(a.theme)) app.theme = a.theme;
+    if (HEX_RE.test(a.accent || '')) app.accent = a.accent;
+    if (HEX_RE.test(a.textColor || '')) app.textColor = a.textColor;
+    if (Object.keys(app).length) out.appearance = app;
+  }
+
   if (typeof o.customCss === 'string') out.customCss = o.customCss.slice(0, 40_000);
+  // Per-page custom JS still rides the global "Enable custom JavaScript" master
+  // switch (see appearance.js) — this per-page flag is an extra gate, not a bypass.
+  if (typeof o.customJs === 'string') out.customJs = o.customJs.slice(0, 40_000);
+  if (o.customJsEnabled) out.customJsEnabled = true;
   return out;
 }

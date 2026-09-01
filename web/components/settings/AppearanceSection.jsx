@@ -2,8 +2,9 @@ import { useState } from 'preact/hooks';
 import { settings, updateSettings } from '../../store.js';
 import { api } from '../../api.js';
 import { LOCALES, t } from '../../i18n.js';
+import { THEMES } from '../../../src/shared/themes.js';
+import { ContrastHint } from './ContrastHint.jsx';
 
-const THEMES = ['minimal', 'glass', 'terminal', 'gradient', 'nord', 'rosepine'];
 const MODES = ['system', 'light', 'dark'];
 const FONTS = [
   { value: '', label: 'Theme default' },
@@ -14,10 +15,17 @@ const FONTS = [
   { value: 'rounded', label: 'Rounded' },
 ];
 
+// Portable "look" — the appearance-only slice of settings.
+const THEME_KEYS = ['theme', 'dark_mode', 'accent', 'text_color', 'font_family', 'custom_css'];
+
 export function AppearanceSection() {
   const [form, setForm] = useState({ ...settings.value });
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [exportText, setExportText] = useState('');
+  const [importText, setImportText] = useState('');
+  const [importMsg, setImportMsg] = useState('');
 
   function update(field, value) {
     setSaved(false);
@@ -42,6 +50,41 @@ export function AppearanceSection() {
     e.preventDefault();
     await updateSettings(form);
     setSaved(true);
+  }
+
+  function doExport() {
+    const blob = Object.fromEntries(THEME_KEYS.map((k) => [k, form[k] ?? null]));
+    const json = JSON.stringify(blob, null, 2);
+    setExportText(json);
+    // best-effort; the textarea still holds it if the clipboard API is blocked
+    try {
+      navigator.clipboard?.writeText(json)?.catch(() => {});
+    } catch {
+      /* no clipboard API */
+    }
+  }
+
+  async function doImport() {
+    let parsed;
+    try {
+      parsed = JSON.parse(importText);
+    } catch {
+      setImportMsg('Not valid JSON.');
+      return;
+    }
+    const patch = {};
+    for (const k of THEME_KEYS) if (parsed[k] !== undefined) patch[k] = parsed[k];
+    if (!Object.keys(patch).length) {
+      setImportMsg('No theme keys found.');
+      return;
+    }
+    try {
+      await updateSettings(patch); // server validates; bad values 400
+      setForm((f) => ({ ...f, ...patch }));
+      setImportMsg('Applied.');
+    } catch (err) {
+      setImportMsg(err.message || 'Rejected by the server.');
+    }
   }
 
   return (
@@ -69,9 +112,9 @@ export function AppearanceSection() {
           <label>
             Theme
             <select value={form.theme} onChange={(e) => update('theme', e.target.value)}>
-              {THEMES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {THEMES.map((th) => (
+                <option key={th} value={th}>
+                  {th}
                 </option>
               ))}
             </select>
@@ -123,12 +166,40 @@ export function AppearanceSection() {
         {form.text_color != null && (
           <label>
             Text color
-            <input
-              type="color"
-              value={form.text_color}
-              onInput={(e) => update('text_color', e.target.value)}
-            />
+            <input type="color" value={form.text_color} onInput={(e) => update('text_color', e.target.value)} />
+            <ContrastHint color={form.text_color} />
           </label>
+        )}
+
+        <button type="button" class="modal-disclosure" onClick={() => setShareOpen((v) => !v)}>
+          {shareOpen ? '▾' : '▸'} Theme sharing
+        </button>
+        {shareOpen && (
+          <fieldset class="iframe-fields">
+            <button type="button" class="settings-add-btn" onClick={doExport}>
+              Export current look (copies to clipboard)
+            </button>
+            {exportText && <textarea class="code-textarea" rows="7" readonly value={exportText} />}
+            <label>
+              Import a look — paste JSON, then Apply
+              <textarea
+                class="code-textarea"
+                rows="7"
+                value={importText}
+                onInput={(e) => {
+                  setImportText(e.target.value);
+                  setImportMsg('');
+                }}
+                placeholder='{ "theme": "dracula", "accent": "#bd93f9" }'
+              />
+            </label>
+            <div class="settings-form-actions">
+              <button type="button" onClick={doImport}>
+                Apply imported look
+              </button>
+              {importMsg && <span class="settings-saved-hint">{importMsg}</span>}
+            </div>
+          </fieldset>
         )}
 
         <label>
@@ -147,7 +218,9 @@ export function AppearanceSection() {
         <label>
           Custom CSS (applied on every page)
           <textarea
-            rows="5"
+            class="code-textarea"
+            rows="14"
+            spellcheck={false}
             value={form.custom_css || ''}
             placeholder=".tile { border-radius: 4px; }"
             onInput={(e) => update('custom_css', e.target.value)}
@@ -166,7 +239,9 @@ export function AppearanceSection() {
           <label>
             Custom JavaScript — runs on every page load with full access to the dashboard. Only use code you trust.
             <textarea
-              rows="5"
+              class="code-textarea"
+              rows="14"
+              spellcheck={false}
               value={form.custom_js || ''}
               placeholder="console.log('hello from selfdash')"
               onInput={(e) => update('custom_js', e.target.value)}

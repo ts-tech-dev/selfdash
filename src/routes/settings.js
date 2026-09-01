@@ -1,4 +1,5 @@
 import { invalidateComposeScanCache } from './composeScan.js';
+import { THEME_SET } from '../shared/themes.js';
 
 export const DEFAULTS = {
   site_title: 'selfdash',
@@ -18,7 +19,7 @@ export const DEFAULTS = {
   compose_scan_page_id: null,
 };
 
-const THEMES = new Set(['minimal', 'glass', 'terminal', 'gradient', 'nord', 'rosepine']);
+const THEMES = THEME_SET;
 const FONTS = new Set(['', 'system', 'inter', 'serif', 'mono', 'rounded']);
 const MODES = new Set(['light', 'dark', 'system']);
 const ACCENT_RE = /^#[0-9a-f]{6}$/i;

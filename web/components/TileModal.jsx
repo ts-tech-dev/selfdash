@@ -5,6 +5,7 @@ import { integrations, availableIntegrations, tiles } from '../store.js';
 import { DynamicConfigForm } from './DynamicConfigForm.jsx';
 import { IconPicker } from './IconPicker.jsx';
 import { TILE_REGISTRY, registryEntry } from '../tiles/registry.jsx';
+import { ContrastHint } from './settings/ContrastHint.jsx';
 
 const ASPECT_RATIOS = ['16/9', '4/3', '1/1', '21/9'];
 const DEFAULT_IFRAME_CONFIG = {
@@ -438,6 +439,9 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
                   value={form.appearance.textColor || '#cccccc'}
                   onInput={(e) => updateAppearance('textColor', e.target.value)}
                 />
+                {/^#[0-9a-f]{6}$/i.test(form.appearance.textColor) && (
+                  <ContrastHint color={form.appearance.textColor} />
+                )}
               </label>
               <label class="checkbox-field">
                 <input

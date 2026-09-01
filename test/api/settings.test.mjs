@@ -30,6 +30,8 @@ describe('settings API', () => {
 
   it('PATCH validates enum + format fields', async () => {
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { theme: 'neon' } })).status, 400);
+    assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { theme: 'dracula' } })).status, 200);
+    assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { theme: 'oled' } })).status, 200);
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { accent: 'orange' } })).status, 400);
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { text_color: 'blue' } })).status, 400);
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { text_color: '#abc' } })).status, 400);

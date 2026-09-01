@@ -23,14 +23,17 @@ function upsertEl(tag, id) {
 
 export function applyAppearance(settings, page) {
   const root = document.documentElement;
-  root.setAttribute('data-theme', settings.theme);
+  // Per-page appearance overrides win over the global settings; absent = inherit.
+  const pa = page?.options?.appearance || {};
+  root.setAttribute('data-theme', pa.theme || settings.theme);
   root.setAttribute('data-mode', resolveMode(settings.dark_mode));
-  root.style.setProperty('--accent', settings.accent);
+  root.style.setProperty('--accent', pa.accent || settings.accent);
   // Optional text-colour override. Empty/null falls back to the theme's tokens.
   // Derive a dimmer companion by blending toward the page background.
-  if (settings.text_color) {
-    root.style.setProperty('--text', settings.text_color);
-    root.style.setProperty('--text-dim', `color-mix(in srgb, ${settings.text_color} 62%, var(--bg))`);
+  const textColor = pa.textColor || settings.text_color;
+  if (textColor) {
+    root.style.setProperty('--text', textColor);
+    root.style.setProperty('--text-dim', `color-mix(in srgb, ${textColor} 62%, var(--bg))`);
   } else {
     root.style.removeProperty('--text');
     root.style.removeProperty('--text-dim');
@@ -67,14 +70,18 @@ export function applyAppearance(settings, page) {
     `${settings.custom_css || ''}\n${page?.options?.customCss || ''}`;
 
   // --- custom JS (opt-in) — replacing the node re-executes it ---
+  // The global master switch gates everything; per-page JS needs BOTH that switch
+  // and the page's own customJsEnabled flag.
   const oldJs = document.getElementById('selfdash-custom-js');
-  if (settings.custom_js_enabled && settings.custom_js) {
+  const globalJs = settings.custom_js_enabled ? settings.custom_js || '' : '';
+  const pageJs =
+    settings.custom_js_enabled && page?.options?.customJsEnabled ? page.options.customJs || '' : '';
+  const js = [globalJs, pageJs].filter(Boolean).join('\n;\n');
+  if (oldJs) oldJs.remove();
+  if (js) {
     const s = document.createElement('script');
     s.id = 'selfdash-custom-js';
-    s.textContent = settings.custom_js;
-    if (oldJs) oldJs.remove();
+    s.textContent = js;
     document.body.appendChild(s);
-  } else if (oldJs) {
-    oldJs.remove();
   }
 }
