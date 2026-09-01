@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { tiles, addTile, editTile, removeTile, refreshTileHealth, renameGroup, removeGroup } from '../store.js';
-import { occupancyOf, placeBox } from '../../src/shared/gridPack.js';
+import { placeInGroup } from '../../src/shared/gridPack.js';
 import { TileCard } from './TileCard.jsx';
 import { TileModal } from './TileModal.jsx';
 import { t } from '../i18n.js';
@@ -243,14 +243,33 @@ export function TileGrid({ page }) {
 
   async function onModalSave(data) {
     if (modalTile) {
-      await editTile(modalTile.id, data);
+      const from = modalTile.config?.group || '';
+      const to = data.config?.group || '';
+      let patch = data;
+      if (to !== from) {
+        // The tile's stored x/y are relative to its old group; keeping them would
+        // overlap whatever already sits in the new group. Re-place it in the first
+        // free slot there — the user can drag it up from the bottom afterwards.
+        patch = {
+          ...data,
+          ...placeInGroup(tiles.value, columns, {
+            group: to,
+            w: data.w || modalTile.w,
+            h: data.h || modalTile.h,
+            exceptId: modalTile.id,
+          }),
+        };
+      }
+      await editTile(modalTile.id, patch);
     } else {
-      // Drop new tiles into the first free slot of their target group so they
-      // don't land on top of an existing tile at (0,0).
-      const group = data.config?.group || '';
-      const peers = tiles.value.filter((tl) => (tl.config?.group || '') === group);
-      const slot = placeBox(occupancyOf(peers, columns), columns, data.w || 2, data.h || 1);
-      await addTile({ ...data, x: slot.x, y: slot.y });
+      // New tiles land in the first free slot of their target group, never on top
+      // of an existing tile at (0,0).
+      const { x, y } = placeInGroup(tiles.value, columns, {
+        group: data.config?.group || '',
+        w: data.w,
+        h: data.h,
+      });
+      await addTile({ ...data, x, y });
     }
     setModalTile(undefined);
   }

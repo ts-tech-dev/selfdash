@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { occupancyOf, placeBox, nextFreeSlot } from '../../src/shared/gridPack.js';
+import { occupancyOf, placeBox, nextFreeSlot, placeInGroup } from '../../src/shared/gridPack.js';
 
 test('occupancyOf: builds a row bitmask from placed tiles', () => {
   const occ = occupancyOf([{ x: 0, y: 0, w: 2, h: 1 }, { x: 4, y: 0, w: 1, h: 2 }], 6);
@@ -37,4 +37,29 @@ test('placeBox: mutates occupancy so subsequent calls see the reservation', () =
 test('nextFreeSlot: composes occupancyOf + placeBox', () => {
   const tiles = [{ x: 0, y: 0, w: 6, h: 1 }];
   assert.deepEqual(nextFreeSlot(tiles, 6, 2, 1), { x: 0, y: 1 });
+});
+
+test('placeInGroup: packs only against tiles in the same group', () => {
+  const tiles = [
+    { id: 1, x: 0, y: 0, w: 6, h: 1, config: { group: 'A' } },
+    { id: 2, x: 0, y: 0, w: 2, h: 1, config: { group: 'B' } },
+    { id: 3, x: 0, y: 0, w: 2, h: 1, config: {} }, // ungrouped
+  ];
+  // moving a tile into group A: row 0 is full there -> next row
+  assert.deepEqual(placeInGroup(tiles, 6, { group: 'A', w: 2, h: 1 }), { x: 0, y: 1 });
+  // group B only has a 2-wide tile at x0 -> land beside it
+  assert.deepEqual(placeInGroup(tiles, 6, { group: 'B', w: 2, h: 1 }), { x: 2, y: 0 });
+  // ungrouped ('') sees only tile 3
+  assert.deepEqual(placeInGroup(tiles, 6, { group: '', w: 2, h: 1 }), { x: 2, y: 0 });
+});
+
+test('placeInGroup: exceptId keeps a tile from colliding with its old self', () => {
+  const tiles = [
+    { id: 1, x: 0, y: 0, w: 3, h: 1, config: { group: 'A' } },
+    { id: 2, x: 3, y: 0, w: 3, h: 1, config: { group: 'A' } },
+  ];
+  // tile 2 excluded -> only tile 1 (cols 0-2) blocks -> a 3-wide box fits at x3,y0
+  assert.deepEqual(placeInGroup(tiles, 6, { group: 'A', w: 3, h: 1, exceptId: 2 }), { x: 3, y: 0 });
+  // without exceptId, row 0 is full for a 3-wide box -> wraps to row 1
+  assert.deepEqual(placeInGroup(tiles, 6, { group: 'A', w: 3, h: 1 }), { x: 0, y: 1 });
 });

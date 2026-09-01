@@ -80,7 +80,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T13 | `POST` to unknown page → 404 | ✅ `api/tiles` |
 | T14 | Per-type config sanitizers (clock/weather/notes/search/rss/calendar/bookmarks/customapi/resources) coerce, clamp, drop unknown keys | ✅ `unit/shared.tileConfig` |
 | T15 | `commonConfig` — group trim, appearance hex validation, `hideTitle` | ✅ `unit/shared.tileConfig` |
-| T16 | 2-D packing: `occupancyOf` / `placeBox` / `nextFreeSlot` first-fit | ✅ `unit/shared.gridPack` |
+| T16 | 2-D packing: `occupancyOf` / `placeBox` / `nextFreeSlot` first-fit; `placeInGroup` packs only against same-group tiles and honours `exceptId` (the tile being moved) — used so adding a tile or changing a tile's group drops it in the target group's first free slot instead of overlapping | ✅ `unit/shared.gridPack` |
 | T17 | Size presets ↔ `w×h` round-trip | ✅ `unit/shared.misc` |
 | T18 | Tile drag/resize UI, group collapse (localStorage), "Add tile" slot picker | 🖐️ §9 |
 | T18b | Group assignment is a radio picker (None / existing groups / "New group…"), not free text; edit-mode group headers rename (patches every member tile, collapse state migrates) and remove (members become ungrouped, none deleted) | 🖐️ §9.5b |
@@ -325,7 +325,9 @@ Run after frontend changes or before a release. ~5 minutes.
 4. **Tiles:** add one of each type (link, iframe, clock, weather, notes, search,
    rss, calendar, bookmarks, customapi, resources); each renders a body.
 5. **Tile layout:** drag a tile to a new cell, resize it from the corner grip,
-   collapse a named group, reload — layout persisted.
+   collapse a named group, reload — layout persisted. Edit a tile and change
+   its Group → it lands in the target group's first free slot (bottom), never
+   on top of an existing tile; then drag it where you want.
 5b. **Groups:** in a tile's "Group & appearance" section, the Group field is a
    radio list — None, every group already on the page, and "New group…"
    (name field appears only for that). Pick an existing one → tile moves under

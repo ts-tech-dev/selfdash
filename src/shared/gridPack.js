@@ -54,3 +54,14 @@ export function placeBox(occ, columns, w, h) {
 export function nextFreeSlot(tiles, columns, w, h) {
   return placeBox(occupancyOf(tiles, columns), columns, w, h);
 }
+
+// First free {x,y} for a w×h box within one group (tiles are grouped by
+// `config.group`, '' = ungrouped), ignoring `exceptId` — the tile being placed or
+// moved. Coordinates are relative to that group's own top, the basis the grid packs
+// on, so a tile changing groups never lands on top of what's already there.
+export function placeInGroup(tiles, columns, { group = '', w = 2, h = 1, exceptId } = {}) {
+  const peers = (tiles || []).filter(
+    (t) => t.id !== exceptId && (t.config?.group || '') === group
+  );
+  return nextFreeSlot(peers, columns, w, h);
+}
