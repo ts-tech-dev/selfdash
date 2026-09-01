@@ -26,6 +26,15 @@ export function applyAppearance(settings, page) {
   root.setAttribute('data-theme', settings.theme);
   root.setAttribute('data-mode', resolveMode(settings.dark_mode));
   root.style.setProperty('--accent', settings.accent);
+  // Optional text-colour override. Empty/null falls back to the theme's tokens.
+  // Derive a dimmer companion by blending toward the page background.
+  if (settings.text_color) {
+    root.style.setProperty('--text', settings.text_color);
+    root.style.setProperty('--text-dim', `color-mix(in srgb, ${settings.text_color} 62%, var(--bg))`);
+  } else {
+    root.style.removeProperty('--text');
+    root.style.removeProperty('--text-dim');
+  }
   const fontStack = FONT_STACKS[settings.font_family];
   if (fontStack) root.style.setProperty('--app-font', fontStack);
   else root.style.removeProperty('--app-font');

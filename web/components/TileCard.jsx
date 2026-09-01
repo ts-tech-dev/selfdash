@@ -37,6 +37,10 @@ function appearanceStyle(tile) {
   const style = {};
   if (a.accent) style['--accent'] = a.accent;
   if (a.iconBg) style['--tile-icon-bg'] = a.iconBg;
+  if (a.textColor) {
+    style['--text'] = a.textColor;
+    style['--text-dim'] = `color-mix(in srgb, ${a.textColor} 62%, var(--bg))`;
+  }
   return style;
 }
 

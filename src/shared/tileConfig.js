@@ -176,6 +176,7 @@ export function commonConfig(raw) {
     const app = {};
     if (/^#[0-9a-f]{6}$/i.test(a.accent || '')) app.accent = a.accent;
     if (/^#[0-9a-f]{6}$/i.test(a.iconBg || '')) app.iconBg = a.iconBg;
+    if (/^#[0-9a-f]{6}$/i.test(a.textColor || '')) app.textColor = a.textColor;
     if (a.hideTitle) app.hideTitle = true;
     if (Object.keys(app).length) out.appearance = app;
   }

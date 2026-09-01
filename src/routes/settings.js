@@ -6,6 +6,7 @@ export const DEFAULTS = {
   theme: 'minimal',
   dark_mode: 'system',
   accent: '#5b8def',
+  text_color: null,
   font_family: '',
   locale: 'en',
   custom_css: '',
@@ -48,6 +49,13 @@ export default async function settingsRoutes(app) {
     if (body.accent !== undefined) {
       if (!ACCENT_RE.test(body.accent)) return reply.code(400).send({ error: 'accent must be a #rrggbb hex color' });
       next.accent = body.accent;
+    }
+    if (body.text_color !== undefined) {
+      // null / '' clears the override and falls back to the theme's text colour.
+      if (body.text_color && !ACCENT_RE.test(body.text_color)) {
+        return reply.code(400).send({ error: 'text_color must be a #rrggbb hex color' });
+      }
+      next.text_color = body.text_color || null;
     }
     if (body.font_family !== undefined) {
       if (!FONTS.has(body.font_family)) return reply.code(400).send({ error: `font_family must be one of ${[...FONTS].join(', ')}` });

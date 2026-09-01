@@ -31,6 +31,8 @@ describe('settings API', () => {
   it('PATCH validates enum + format fields', async () => {
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { theme: 'neon' } })).status, 400);
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { accent: 'orange' } })).status, 400);
+    assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { text_color: 'blue' } })).status, 400);
+    assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { text_color: '#abc' } })).status, 400);
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { dark_mode: 'sepia' } })).status, 400);
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { site_title: '' } })).status, 400);
     assert.equal((await s.request('/api/settings', { method: 'PATCH', body: { font_family: 'comic' } })).status, 400);
@@ -42,6 +44,15 @@ describe('settings API', () => {
     const r = await s.request('/api/settings', { method: 'PATCH', body: { global_background: null, favicon: '' } });
     assert.equal(r.body.global_background, null);
     assert.equal(r.body.favicon, null);
+  });
+
+  it('PATCH text_color: accepts a hex, echoes it, clears with empty string', async () => {
+    const set = await s.request('/api/settings', { method: 'PATCH', body: { text_color: '#10A37F' } });
+    assert.equal(set.status, 200);
+    assert.equal(set.body.text_color, '#10A37F');
+    assert.equal((await s.request('/api/settings')).body.text_color, '#10A37F');
+    const cleared = await s.request('/api/settings', { method: 'PATCH', body: { text_color: '' } });
+    assert.equal(cleared.body.text_color, null);
   });
 
   it('PATCH truncates oversized custom CSS/JS instead of rejecting', async () => {

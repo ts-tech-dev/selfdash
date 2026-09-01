@@ -40,7 +40,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     views: Array.isArray(tile?.config?.views) ? tile.config.views : [],
     moreIntegrationIds: Array.isArray(tile?.config?.moreIntegrationIds) ? tile.config.moreIntegrationIds : [],
     group: tile?.config?.group || '',
-    appearance: { accent: '', iconBg: '', hideTitle: false, ...(tile?.config?.appearance || {}) },
+    appearance: { accent: '', iconBg: '', textColor: '', hideTitle: false, ...(tile?.config?.appearance || {}) },
     // panel config, seeded from the registry defaults when adding
     panelConfig:
       registryEntry(startType) && tile
@@ -113,6 +113,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     const a = {};
     if (/^#[0-9a-f]{6}$/i.test(form.appearance.accent)) a.accent = form.appearance.accent;
     if (/^#[0-9a-f]{6}$/i.test(form.appearance.iconBg)) a.iconBg = form.appearance.iconBg;
+    if (/^#[0-9a-f]{6}$/i.test(form.appearance.textColor)) a.textColor = form.appearance.textColor;
     if (form.appearance.hideTitle) a.hideTitle = true;
     if (Object.keys(a).length) cfg.appearance = a;
     return cfg;
@@ -430,6 +431,14 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
                   onInput={(e) => updateAppearance('iconBg', e.target.value)}
                 />
               </label>
+              <label>
+                Text color
+                <input
+                  type="color"
+                  value={form.appearance.textColor || '#cccccc'}
+                  onInput={(e) => updateAppearance('textColor', e.target.value)}
+                />
+              </label>
               <label class="checkbox-field">
                 <input
                   type="checkbox"
@@ -442,7 +451,9 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
             <button
               type="button"
               class="modal-disclosure"
-              onClick={() => setForm((f) => ({ ...f, appearance: { accent: '', iconBg: '', hideTitle: false } }))}
+              onClick={() =>
+                setForm((f) => ({ ...f, appearance: { accent: '', iconBg: '', textColor: '', hideTitle: false } }))
+              }
             >
               Reset appearance
             </button>

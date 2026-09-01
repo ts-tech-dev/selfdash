@@ -126,6 +126,15 @@ test('commonConfig: group trimmed, appearance hex-validated', () => {
   assert.deepEqual(commonConfig({}), {});
 });
 
+test('commonConfig: appearance.textColor kept only when a #rrggbb hex', () => {
+  assert.deepEqual(
+    commonConfig({ appearance: { textColor: '#10a37f' } }),
+    { appearance: { textColor: '#10a37f' } }
+  );
+  assert.deepEqual(commonConfig({ appearance: { textColor: 'white' } }), {});
+  assert.deepEqual(commonConfig({ appearance: { textColor: '#fff' } }), {});
+});
+
 test('sanitizeTileConfig merges common fields onto panel config', () => {
   const c = sanitizeTileConfig('notes', { markdown: '# hi', group: 'Docs' });
   assert.equal(c.markdown, '# hi');

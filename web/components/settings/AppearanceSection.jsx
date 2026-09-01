@@ -112,6 +112,25 @@ export function AppearanceSection() {
           </label>
         </div>
 
+        <label class="checkbox-field">
+          <input
+            type="checkbox"
+            checked={form.text_color != null}
+            onChange={(e) => update('text_color', e.target.checked ? form.text_color || '#e6e6e6' : null)}
+          />
+          Custom text color (overrides the theme for all page text)
+        </label>
+        {form.text_color != null && (
+          <label>
+            Text color
+            <input
+              type="color"
+              value={form.text_color}
+              onInput={(e) => update('text_color', e.target.value)}
+            />
+          </label>
+        )}
+
         <label>
           Global background URL
           <input

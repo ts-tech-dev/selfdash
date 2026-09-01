@@ -87,14 +87,15 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T19 | `widgetConfig`: dedupes/caps `views` (max 8); `moreIntegrationIds` drops self-refs, dangling ids, non-integers, dedupes, caps at 12, and is dropped entirely unless exactly one view is selected (server-enforced, not just the tile modal's UI) | ✅ `unit/shared.tileConfig` · `api/tiles` |
 | T20 | `mergeModels` ("Also include"): `queue`/`list` concatenate rows and tag each `subtitle` with its source (e.g. which download client); `calendar` merges + sorts by `ts` with a `source` tag; `stats`/`nowplaying`/unknown don't merge (→ null); missing / wrong-type sources are skipped | ✅ `unit/shared.mergeModels` |
 | T21 | "Also include" candidate list = integrations sharing the primary's `mergeGroup` **and** the picked view key — so a download-client queue merges qbittorrent + sabnzbd only, never radarr/sonarr | 🖐️ §9 (filter logic in `TileModal.jsx`; `mergeGroup` values covered by I1) |
+| T22 | `commonConfig` keeps `appearance.textColor` only when a `#rrggbb` hex; `TileCard` maps it (and a derived `--text-dim`) to CSS vars on the tile root | ✅ `unit/shared.tileConfig` (apply path in `TileCard.jsx`) |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
 |---|---|---|
 | S1 | `GET` returns full object = `DEFAULTS` ⊕ stored | ✅ `api/settings` |
 | S2 | `PATCH` persists a valid subset, survives reload | ✅ `api/settings` |
-| S3 | Enum/format validation: `theme`, `dark_mode`, `font_family`, `locale`, `accent` (#rrggbb), non-empty `site_title` | ✅ `api/settings` |
-| S4 | Nullable fields cleared with `null` or `''` (`global_background`, `favicon`) | ✅ `api/settings` |
+| S3 | Enum/format validation: `theme`, `dark_mode`, `font_family`, `locale`, `accent` + `text_color` (#rrggbb), non-empty `site_title` | ✅ `api/settings` |
+| S4 | Nullable fields cleared with `null` or `''` (`global_background`, `favicon`, `text_color`) | ✅ `api/settings` |
 | S5 | `custom_css` / `custom_js` truncated to 40 000 chars, not rejected | ✅ `api/settings` |
 | S6 | `compose_scan_dir` must be absolute | ✅ `api/settings` |
 | S7 | `compose_scan_page_id` accepts a page id, `"all"`, `null` | 🖐️ (add ✅ when touched) |
@@ -326,6 +327,11 @@ Run after frontend changes or before a release. ~5 minutes.
    ✎ renames the group across all its tiles (collapse state follows the new
    name); ✕ asks to confirm, then its tiles become ungrouped — none deleted.
 6. **Appearance:** change theme, dark mode, accent, font — applied live.
+   Tick "Custom text color", pick a colour → all page text (headings, group
+   labels, compose panel, tile bodies) recolours live; secondary text follows
+   a derived dimmer shade. Untick → back to the theme. Per tile: Group &
+   appearance → "Text color" recolours just that tile; "Reset appearance"
+   clears it.
 7. **Background:** paste a URL → Save → full-page image appears behind tiles.
    Upload an image → Save → same. Set per-page background + blur/dim/opacity on
    one page only; confirm it overrides the global on that page and not others.
