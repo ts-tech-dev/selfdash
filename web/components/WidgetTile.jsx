@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import { integrations, availableIntegrations } from '../store.js';
+import { mergeModel } from '../../src/shared/mergeModels.js';
 
 function StatsView({ items }) {
   return (
@@ -44,6 +45,7 @@ function QueueView({ items }) {
             <span class="widget-queue-title">{it.title}</span>
             {it.status && <span class="widget-queue-status">{it.status}</span>}
           </div>
+          {it.subtitle && <span class="widget-queue-sub">{it.subtitle}</span>}
           {typeof it.progress === 'number' && (
             <div class="widget-progress">
               <div class="widget-progress-bar" style={{ width: `${Math.round(it.progress * 100)}%` }} />
@@ -316,35 +318,6 @@ function SectionsView({ sections }) {
       </div>
     </div>
   );
-}
-
-// Which views a merged model can meaningfully combine — a shared calendar, or
-// concatenated rows tagged with where they came from. Types like stats/nowplaying
-// don't merge into one number/card; those fall back to a section per source instead
-// (same layout the "several views on one integration" case already uses).
-function mergeCalendar(perSource) {
-  const items = [];
-  for (const { source, model } of perSource) {
-    if (!model || model.type !== 'calendar') continue;
-    for (const it of model.items || []) items.push({ ...it, source });
-  }
-  items.sort((a, b) => a.ts - b.ts);
-  return { type: 'calendar', items };
-}
-
-function mergeListLike(type, perSource) {
-  const items = [];
-  for (const { source, model } of perSource) {
-    if (!model || model.type !== type) continue;
-    for (const it of model.items || []) items.push({ ...it, subtitle: it.subtitle ? `${it.subtitle} · ${source}` : source });
-  }
-  return { type, items };
-}
-
-function mergeModel(type, perSource) {
-  if (type === 'calendar') return mergeCalendar(perSource);
-  if (type === 'list' || type === 'queue') return mergeListLike(type, perSource);
-  return null;
 }
 
 function viewLabel(integrationKey, viewKey) {

@@ -1120,6 +1120,15 @@ body[data-has-bg]::before {
   font-size: 0.7rem;
 }
 
+/* Source label on a merged queue (config.moreIntegrationIds) — which download
+   client this row came from. Absent on a single-source queue. */
+.widget-queue-sub {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.65rem;
+  margin-top: 1px;
+}
+
 .widget-list-row {
   display: flex;
   gap: 8px;

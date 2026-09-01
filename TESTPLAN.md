@@ -84,6 +84,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T17 | Size presets ↔ `w×h` round-trip | ✅ `unit/shared.misc` |
 | T18 | Tile drag/resize UI, group collapse (localStorage), "Add tile" slot picker | 🖐️ §9 |
 | T19 | `widgetConfig`: dedupes/caps `views` (max 8); `moreIntegrationIds` drops self-refs, dangling ids, non-integers, dedupes, caps at 12, and is dropped entirely unless exactly one view is selected (server-enforced, not just the tile modal's UI) | ✅ `unit/shared.tileConfig` · `api/tiles` |
+| T20 | `mergeModels` ("Also include"): `queue`/`list` concatenate rows and tag each `subtitle` with its source (e.g. which download client); `calendar` merges + sorts by `ts` with a `source` tag; `stats`/`nowplaying`/unknown don't merge (→ null); missing / wrong-type sources are skipped | ✅ `unit/shared.mergeModels` |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
@@ -330,7 +331,10 @@ Run after frontend changes or before a release. ~5 minutes.
    *same* integration with a different view checked — confirm the two tiles
    show different things (view selection is per-tile). With exactly one view
    checked and a second same-type integration configured, "Also include"
-   appears; check it and confirm the tile merges both — for "Release
+   appears; check it and confirm the tile merges both. For a **Download
+   queue** view, add a qBittorrent widget tile, check only "Download queue",
+   and "Also include" a SABnzbd integration → one queue with every item, each
+   row labelled with its client. For "Release
    calendar" specifically, events from every source merge into one grid and a
    day cell shows only the show/movie name (no source tag). Hover (or focus) a
    day with releases → a floating card lists each release that day with its
