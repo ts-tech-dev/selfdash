@@ -331,10 +331,16 @@ Run after frontend changes or before a release. ~5 minutes.
    checked and a second same-type integration configured, "Also include"
    appears; check it and confirm the tile merges both — for "Release
    calendar" specifically, events from each source carry a small colored tag
-   naming which integration they came from.
-10. **Backup:** export a zip; re-import it → app restarts, data intact.
-11. **Config:** export YAML, edit the site title, re-import → applied.
-12. **PWA:** install, go offline, reload → shell still loads.
+   naming which integration they came from. The calendar shows one month at a
+   time — ‹ › page between months (arrows disable past the data range), a
+   "Today" chip returns to the current month.
+10. **Tile scaling:** drop a **weather** tile and a **calendar** widget to the
+    smallest (1×1) size → text isn't clipped: weather keeps icon + temp + one
+    line, the calendar grid fills the tile with day tint/dots instead of event
+    titles. Resize larger → detail comes back.
+12. **Backup:** export a zip; re-import it → app restarts, data intact.
+13. **Config:** export YAML, edit the site title, re-import → applied.
+14. **PWA:** install, go offline, reload → shell still loads.
 
 ---
 

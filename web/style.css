@@ -274,6 +274,10 @@ body[data-has-bg]::before {
   flex-direction: column;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* Tile bodies (weather, calendar, …) scale to the tile's actual size via
+     @container tile (…) queries, so they stay legible at the 1×1 size. Tile size
+     is always driven by the grid, never by content, so size containment is safe. */
+  container: tile / size;
 }
 
 .tile:hover {
@@ -998,10 +1002,17 @@ body[data-has-bg]::before {
 
 .widget-body {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   padding: 10px;
   overflow: auto;
+}
+
+@container tile (max-height: 130px) {
+  .widget-body {
+    padding: 7px 9px;
+  }
 }
 
 .widget-disabled {
@@ -1190,24 +1201,99 @@ body[data-has-bg]::before {
   margin-bottom: 6px;
 }
 
-/* Calendar view (radarr/sonarr release calendar, and any future date-bucketed widget) */
+/* Calendar view (radarr/sonarr release calendar, and any future date-bucketed widget).
+   One month at a time, ‹ › to page between months, the grid flexes to fill the tile. */
 
 .widget-calendar {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  min-height: 0;
+  gap: 6px;
+}
+
+.widget-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.widget-cal-navbtn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.widget-cal-navbtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.widget-cal-navbtn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .widget-cal-title {
-  font-size: 0.7rem;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.72rem;
   font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.widget-cal-count {
+  font-size: 0.56rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 0 5px;
+  min-width: 14px;
+  text-align: center;
+}
+
+.widget-cal-today-btn {
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
   color: var(--text-dim);
-  margin-bottom: 6px;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+
+.widget-cal-today-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .widget-cal-grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  /* grid-template-rows is set inline: `auto repeat(<weeks>, minmax(0, 1fr))` */
   gap: 3px;
 }
 
@@ -1217,11 +1303,9 @@ body[data-has-bg]::before {
   letter-spacing: 0.04em;
   color: var(--text-dim);
   text-align: center;
-  padding-bottom: 2px;
 }
 
 .widget-cal-cell {
-  min-height: 40px;
   border-radius: 5px;
   border: 1px solid transparent;
   padding: 2px 3px;
@@ -1229,6 +1313,8 @@ body[data-has-bg]::before {
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .widget-cal-empty {
@@ -1255,6 +1341,7 @@ body[data-has-bg]::before {
   font-size: 0.65rem;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .widget-cal-events {
@@ -1262,6 +1349,8 @@ body[data-has-bg]::before {
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .widget-cal-event {
@@ -1291,22 +1380,21 @@ body[data-has-bg]::before {
   color: var(--text-dim);
 }
 
-@media (max-width: 420px) {
-  .widget-cal-cell {
-    min-height: 30px;
-  }
-  .widget-cal-event {
+/* Small tiles: no room for event titles — the day-cell tint plus a dot carry
+   "something ships this day", and the ‹ › month total still shows the count. */
+@container tile (max-width: 260px), tile (max-height: 220px) {
+  .widget-cal-event,
+  .widget-cal-more {
     display: none;
   }
   .widget-cal-has .widget-cal-daynum::after {
     content: '';
-    display: inline-block;
+    display: block;
     width: 4px;
     height: 4px;
-    margin-left: 3px;
+    margin-top: 1px;
     border-radius: 50%;
     background: var(--accent);
-    vertical-align: middle;
   }
 }
 
@@ -1716,6 +1804,14 @@ body[data-has-bg]::before {
   gap: 8px;
 }
 
+/* Reclaim padding on short tiles so the body actually fits the 1×1 size. */
+@container tile (max-height: 130px) {
+  .tile-panel {
+    padding: 7px 10px;
+    gap: 4px;
+  }
+}
+
 .tile-panel-muted,
 .tile-notes-empty,
 .tile-bookmarks-empty {
@@ -1909,17 +2005,25 @@ body[data-has-bg]::before {
 .tile-weather {
   justify-content: center;
   gap: 4px;
+  min-height: 0;
+  overflow: hidden;
 }
 .tile-weather-main {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
-.tile-weather-icon { font-size: 2rem; }
+.tile-weather-icon {
+  font-size: 1.9rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
 .tile-weather-temp {
-  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  font-size: 2rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 .tile-weather-meta {
   display: flex;
@@ -1927,6 +2031,35 @@ body[data-has-bg]::before {
   gap: 1px;
   font-size: 0.75rem;
   color: var(--text-dim);
+  min-width: 0;
+}
+.tile-weather-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Short tiles (the 1×1 size, and anything with a small rowHeight): tighten up, and
+   when it's really tight drop the secondary "feels / wind / humidity" line rather
+   than letting it clip. */
+@container tile (max-height: 150px) {
+  .tile-weather { gap: 1px; }
+  .tile-weather-main { gap: 6px; }
+  .tile-weather-icon { font-size: 1.5rem; }
+  .tile-weather-temp { font-size: 1.5rem; }
+  .tile-weather-meta { font-size: 0.64rem; }
+}
+@container tile (max-height: 118px) {
+  .tile-weather-icon { font-size: 1.3rem; }
+  .tile-weather-temp { font-size: 1.3rem; }
+  .tile-weather-meta span + span {
+    display: none;
+  }
+}
+@container tile (max-width: 160px) {
+  .tile-weather-main { gap: 5px; }
+  .tile-weather-icon { font-size: 1.3rem; }
+  .tile-weather-temp { font-size: 1.3rem; }
 }
 
 /* --- RSS / Calendar shared list look --- */

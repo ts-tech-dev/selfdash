@@ -287,7 +287,7 @@ The five `WidgetModel` shapes, and what each `items[]` entry looks like:
 | `nowplaying` | `{ title, subtitle?, image?, progress? }` (0-1) | Plex, Tautulli (active sessions) |
 | `queue` | `{ title, status?, progress? }` (0-1) | qBittorrent, SABnzbd, Radarr, Sonarr, Readarr, Tautulli streams |
 | `list` | `{ title, subtitle?, image? }` | *arr upcoming, Tautulli history, Bookdrop |
-| `calendar` | `{ ts, title, subtitle? }` (`ts` = epoch ms; bucketed by local day, rendered as a month grid) | Radarr / Sonarr release calendar |
+| `calendar` | `{ ts, title, subtitle? }` (`ts` = epoch ms; bucketed by local day, rendered one month at a time with ‹ › navigation) | Radarr / Sonarr release calendar |
 
 Fourteen integrations ship out of the box (`src/integrations/*.integration.js`):
 

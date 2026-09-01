@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import { integrations, availableIntegrations } from '../store.js';
 
 function StatsView({ items }) {
@@ -71,7 +72,6 @@ function ListView({ items }) {
 }
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const MAX_CAL_MONTHS = 3;
 const MAX_EVENTS_PER_CELL = 3;
 
 function startOfDay(ts) {
@@ -84,62 +84,69 @@ function ymd(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// A month index (year*12 + month) — handy for clamping the prev/next navigation.
+const monthIndex = (d) => d.getFullYear() * 12 + d.getMonth();
+const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+
 function MonthGrid({ month, today, byDay }) {
   const year = month.getFullYear();
   const mon = month.getMonth();
   const firstOfMonth = new Date(year, mon, 1);
   const lead = (firstOfMonth.getDay() + 6) % 7; // Monday-first offset
   const daysInMonth = new Date(year, mon + 1, 0).getDate();
+  const weeks = Math.ceil((lead + daysInMonth) / 7);
 
   const cells = Array(lead).fill(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, mon, d));
   while (cells.length % 7) cells.push(null);
 
   return (
-    <div class="widget-cal-month">
-      <div class="widget-cal-title">{firstOfMonth.toLocaleDateString([], { month: 'long', year: 'numeric' })}</div>
-      <div class="widget-cal-grid">
-        {DOW.map((d) => (
-          <div key={d} class="widget-cal-dow">
-            {d}
+    <div
+      class="widget-cal-grid"
+      style={{ gridTemplateRows: `auto repeat(${weeks}, minmax(0, 1fr))` }}
+    >
+      {DOW.map((d) => (
+        <div key={d} class="widget-cal-dow">
+          {d}
+        </div>
+      ))}
+      {cells.map((day, i) => {
+        if (!day) return <div key={i} class="widget-cal-cell widget-cal-empty" />;
+        const bucket = byDay.get(ymd(day));
+        const isToday = day.getTime() === today.getTime();
+        return (
+          <div
+            key={i}
+            class={`widget-cal-cell${isToday ? ' widget-cal-today' : ''}${bucket ? ' widget-cal-has' : ''}`}
+          >
+            <span class="widget-cal-daynum">{day.getDate()}</span>
+            {bucket && (
+              <span class="widget-cal-events">
+                {bucket.slice(0, MAX_EVENTS_PER_CELL).map((e, j) => (
+                  <span
+                    key={j}
+                    class="widget-cal-event"
+                    title={[e.title, e.subtitle, e.source].filter(Boolean).join(' — ')}
+                  >
+                    {e.source && <span class="widget-cal-event-src">{e.source}</span>}
+                    {e.title}
+                  </span>
+                ))}
+                {bucket.length > MAX_EVENTS_PER_CELL && (
+                  <span class="widget-cal-more">+{bucket.length - MAX_EVENTS_PER_CELL} more</span>
+                )}
+              </span>
+            )}
           </div>
-        ))}
-        {cells.map((day, i) => {
-          if (!day) return <div key={i} class="widget-cal-cell widget-cal-empty" />;
-          const bucket = byDay.get(ymd(day));
-          const isToday = day.getTime() === today.getTime();
-          return (
-            <div
-              key={i}
-              class={`widget-cal-cell${isToday ? ' widget-cal-today' : ''}${bucket ? ' widget-cal-has' : ''}`}
-            >
-              <span class="widget-cal-daynum">{day.getDate()}</span>
-              {bucket && (
-                <span class="widget-cal-events">
-                  {bucket.slice(0, MAX_EVENTS_PER_CELL).map((e, j) => (
-                    <span
-                      key={j}
-                      class="widget-cal-event"
-                      title={[e.title, e.subtitle, e.source].filter(Boolean).join(' — ')}
-                    >
-                      {e.source && <span class="widget-cal-event-src">{e.source}</span>}
-                      {e.title}
-                    </span>
-                  ))}
-                  {bucket.length > MAX_EVENTS_PER_CELL && (
-                    <span class="widget-cal-more">+{bucket.length - MAX_EVENTS_PER_CELL} more</span>
-                  )}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+        );
+      })}
     </div>
   );
 }
 
 function CalendarView({ items }) {
+  // One month at a time; ‹ › page between months. offset is months from the current one.
+  const [offset, setOffset] = useState(0);
   if (!items.length) return <p class="widget-empty">Nothing scheduled</p>;
 
   const byDay = new Map();
@@ -150,28 +157,49 @@ function CalendarView({ items }) {
   }
 
   const today = startOfDay(Date.now());
-  const firstEvent = startOfDay(items[0].ts);
-  const lastEvent = startOfDay(items[items.length - 1].ts);
+  const curIdx = monthIndex(today);
+  // Only let the user page across months that actually hold data (plus the current one),
+  // so the arrows never wander into a run of empty months.
+  const dataIdx = items.map((it) => monthIndex(new Date(it.ts)));
+  const minIdx = Math.min(curIdx, ...dataIdx);
+  const maxIdx = Math.max(curIdx, ...dataIdx);
+  const viewIdx = clamp(curIdx + offset, minIdx, maxIdx);
+  const viewMonth = new Date(Math.floor(viewIdx / 12), viewIdx % 12, 1);
 
-  // Start at whichever comes first — today, or an event from earlier in the window (the
-  // `pastDays` lookback can reach into last month near a month boundary) — then keep
-  // adding months while there's still data ahead, capped so a long lookahead can't
-  // balloon the tile.
-  const rangeStart = firstEvent.getTime() < today.getTime() ? firstEvent : today;
-  const startMonth = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
-
-  const months = [];
-  const m = new Date(startMonth);
-  while (months.length < MAX_CAL_MONTHS && (months.length === 0 || m <= lastEvent)) {
-    months.push(new Date(m));
-    m.setMonth(m.getMonth() + 1);
-  }
+  const monthCount = items.filter((it) => monthIndex(new Date(it.ts)) === viewIdx).length;
 
   return (
     <div class="widget-calendar">
-      {months.map((month) => (
-        <MonthGrid key={ymd(month)} month={month} today={today} byDay={byDay} />
-      ))}
+      <div class="widget-cal-nav">
+        <button
+          type="button"
+          class="widget-cal-navbtn"
+          disabled={viewIdx <= minIdx}
+          onClick={() => setOffset(viewIdx - 1 - curIdx)}
+          aria-label="Previous month"
+        >
+          ‹
+        </button>
+        <span class="widget-cal-title">
+          {viewMonth.toLocaleDateString([], { month: 'long', year: 'numeric' })}
+          {monthCount > 0 && <span class="widget-cal-count">{monthCount}</span>}
+          {viewIdx !== curIdx && (
+            <button type="button" class="widget-cal-today-btn" onClick={() => setOffset(0)}>
+              Today
+            </button>
+          )}
+        </span>
+        <button
+          type="button"
+          class="widget-cal-navbtn"
+          disabled={viewIdx >= maxIdx}
+          onClick={() => setOffset(viewIdx + 1 - curIdx)}
+          aria-label="Next month"
+        >
+          ›
+        </button>
+      </div>
+      <MonthGrid month={viewMonth} today={today} byDay={byDay} />
     </div>
   );
 }
