@@ -590,6 +590,12 @@ body[data-has-bg]::before {
   padding: 20px;
   width: 340px;
   max-width: calc(100vw - 32px);
+  /* Tall content (e.g. the expanded "Group & appearance" section) must stay
+     reachable — cap the height and scroll inside rather than clipping past the
+     viewport. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -654,7 +660,13 @@ body[data-has-bg]::before {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  /* Stay in view while the modal body scrolls (see .modal overflow-y). */
+  position: sticky;
+  bottom: 0;
   margin-top: 6px;
+  padding-top: 10px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
 }
 
 .modal-actions button {
