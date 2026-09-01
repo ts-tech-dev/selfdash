@@ -22,6 +22,7 @@ const VIEWS = {
 export default class ReadarrIntegration extends BaseIntegration {
   static key = 'readarr';
   static title = 'Readarr';
+  static mergeGroup = 'arr';
   static defaultInterval = 60;
   static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
 

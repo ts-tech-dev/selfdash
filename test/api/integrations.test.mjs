@@ -26,6 +26,18 @@ describe('integrations API', () => {
     const radarr = r.body.find((i) => i.key === 'radarr');
     assert.deepEqual(gluetun.views, { status: 'VPN status' });
     assert.deepEqual(Object.keys(radarr.views), ['queue', 'stats', 'upcoming', 'calendar', 'history', 'health', 'disk']);
+
+    // mergeGroup gates which integrations "Also include" can combine. Download clients
+    // and *arr apps both expose a `queue` view but must not merge into each other.
+    const byKey = Object.fromEntries(r.body.map((i) => [i.key, i]));
+    assert.equal(byKey.qbittorrent.mergeGroup, 'download');
+    assert.equal(byKey.sabnzbd.mergeGroup, 'download');
+    assert.equal(byKey.radarr.mergeGroup, 'arr');
+    assert.equal(byKey.sonarr.mergeGroup, 'arr');
+    assert.equal(byKey.readarr.mergeGroup, 'arr');
+    // integrations with no explicit group fall back to their own key (merge only with same type)
+    assert.equal(byKey.gluetun.mergeGroup, 'gluetun');
+    assert.equal(byKey.plex.mergeGroup, 'plex');
     // No integration schema carries the old "Show" field any more — it moved to the tile.
     for (const typeDef of r.body) {
       assert.ok(!typeDef.configSchema.fields.some((f) => f.name === 'views'), `${typeDef.key}: no views field in config schema`);

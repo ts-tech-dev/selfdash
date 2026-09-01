@@ -28,6 +28,7 @@ const VIEWS = {
 export default class RadarrIntegration extends BaseIntegration {
   static key = 'radarr';
   static title = 'Radarr';
+  static mergeGroup = 'arr';
   static defaultInterval = 60;
   static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
 

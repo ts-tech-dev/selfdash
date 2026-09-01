@@ -163,13 +163,21 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     : {};
   const viewKeys = Object.keys(viewCatalog);
   const singleViewKey = form.views.length === 1 ? form.views[0] : null;
+  const primaryDef = selectedIntegration
+    ? availableIntegrations.value.find((t) => t.key === selectedIntegration.key)
+    : null;
+  const primaryMergeGroup = primaryDef?.mergeGroup || selectedIntegration?.key;
   // Other integrations that can produce this same view — offered as "also include"
-  // only when exactly one view is picked, so the merge target is unambiguous.
+  // only when exactly one view is picked, so the merge target is unambiguous. The
+  // candidate must also share the primary's mergeGroup, so a download-client queue
+  // (qbittorrent + sabnzbd) doesn't pull in radarr/sonarr just because those also
+  // expose a `queue` view.
   const mergeCandidates = singleViewKey
     ? integrations.value.filter((i) => {
         if (i.id === Number(form.integration_id)) return false;
-        const cat = availableIntegrations.value.find((t) => t.key === i.key)?.views || {};
-        return Boolean(cat[singleViewKey]);
+        const def = availableIntegrations.value.find((t) => t.key === i.key);
+        if (!def?.views?.[singleViewKey]) return false;
+        return (def.mergeGroup || i.key) === primaryMergeGroup;
       })
     : [];
 

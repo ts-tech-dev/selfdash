@@ -23,6 +23,7 @@ const UPLOADING_STATES = new Set(['uploading', 'stalledUP', 'queuedUP', 'pausedU
 export default class QbittorrentIntegration extends BaseIntegration {
   static key = 'qbittorrent';
   static title = 'qBittorrent';
+  static mergeGroup = 'download';
   static defaultInterval = 30;
   static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
 

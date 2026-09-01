@@ -9,6 +9,7 @@ const VIEWS = {
 export default class SabnzbdIntegration extends BaseIntegration {
   static key = 'sabnzbd';
   static title = 'SABnzbd';
+  static mergeGroup = 'download';
   static defaultInterval = 30;
   static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
 

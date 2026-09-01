@@ -28,6 +28,7 @@ const VIEWS = {
 export default class SonarrIntegration extends BaseIntegration {
   static key = 'sonarr';
   static title = 'Sonarr';
+  static mergeGroup = 'arr';
   static defaultInterval = 60;
   static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
 

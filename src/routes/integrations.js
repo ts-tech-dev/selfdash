@@ -19,6 +19,9 @@ export default async function integrationsRoutes(app) {
       // not the integration, so two tiles on the same integration can show different
       // things — see web/components/TileModal.jsx).
       views: Cls.views || {},
+      // Widget "Also include" only offers integrations that share this AND the picked
+      // view key — so a download-client queue (download) never merges radarr/sonarr (arr).
+      mergeGroup: Cls.mergeGroup || key,
     }));
   });
 

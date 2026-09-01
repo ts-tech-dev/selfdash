@@ -85,6 +85,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T18 | Tile drag/resize UI, group collapse (localStorage), "Add tile" slot picker | 🖐️ §9 |
 | T19 | `widgetConfig`: dedupes/caps `views` (max 8); `moreIntegrationIds` drops self-refs, dangling ids, non-integers, dedupes, caps at 12, and is dropped entirely unless exactly one view is selected (server-enforced, not just the tile modal's UI) | ✅ `unit/shared.tileConfig` · `api/tiles` |
 | T20 | `mergeModels` ("Also include"): `queue`/`list` concatenate rows and tag each `subtitle` with its source (e.g. which download client); `calendar` merges + sorts by `ts` with a `source` tag; `stats`/`nowplaying`/unknown don't merge (→ null); missing / wrong-type sources are skipped | ✅ `unit/shared.mergeModels` |
+| T21 | "Also include" candidate list = integrations sharing the primary's `mergeGroup` **and** the picked view key — so a download-client queue merges qbittorrent + sabnzbd only, never radarr/sonarr | 🖐️ §9 (filter logic in `TileModal.jsx`; `mergeGroup` values covered by I1) |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
@@ -119,7 +120,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 ### 3.6 Integrations (`src/routes/integrations.js`, `src/integrations/*`)
 | # | Case | Where |
 |---|---|---|
-| I1 | `GET /available` lists shipped integrations, each with `configSchema.fields` + `defaultInterval` + `views` catalog (`{viewKey: label}`, empty schema no longer carries a "Show" field) | ✅ `api/integrations` |
+| I1 | `GET /available` lists shipped integrations, each with `configSchema.fields` + `defaultInterval` + `views` catalog (`{viewKey: label}`, empty schema no longer carries a "Show" field) + `mergeGroup` (`download` for qbittorrent/sabnzbd, `arr` for radarr/sonarr/readarr, else the key) | ✅ `api/integrations` |
 | I2 | Every `*.integration.js` registers under its static `key`, implements `fetchData()`, has a well-formed schema | ✅ `unit/integrations.registry` |
 | I3 | Runtime-dropped `DATA_DIR/integrations/*.integration.js` overrides a shipped key | ✅ `unit/integrations.registry` |
 | I4 | `POST` unknown key → 400 | ✅ `api/integrations` |
@@ -334,7 +335,9 @@ Run after frontend changes or before a release. ~5 minutes.
    appears; check it and confirm the tile merges both. For a **Download
    queue** view, add a qBittorrent widget tile, check only "Download queue",
    and "Also include" a SABnzbd integration → one queue with every item, each
-   row labelled with its client. For "Release
+   row labelled with its client. The "Also include" list must offer only other
+   download clients here — Radarr/Sonarr (also have a `queue` view) must not
+   appear, since they're in a different `mergeGroup`. For "Release
    calendar" specifically, events from every source merge into one grid and a
    day cell shows only the show/movie name (no source tag). Hover (or focus) a
    day with releases → a floating card lists each release that day with its
