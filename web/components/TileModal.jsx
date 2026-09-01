@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { SIZE_PRESETS, sizeKeyFromWH } from '../../src/shared/tileSizes.js';
 import { api } from '../api.js';
-import { integrations } from '../store.js';
+import { integrations, availableIntegrations } from '../store.js';
 import { DynamicConfigForm } from './DynamicConfigForm.jsx';
 import { IconPicker } from './IconPicker.jsx';
 import { TILE_REGISTRY, registryEntry } from '../tiles/registry.jsx';
@@ -37,6 +37,8 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     open_mode: tile?.open_mode || 'newtab',
     iframe: { ...DEFAULT_IFRAME_CONFIG, ...(tile?.open_mode === 'iframe' ? tile.config : {}) },
     integration_id: tile?.integration_id || integrations.value[0]?.id || '',
+    views: Array.isArray(tile?.config?.views) ? tile.config.views : [],
+    moreIntegrationIds: Array.isArray(tile?.config?.moreIntegrationIds) ? tile.config.moreIntegrationIds : [],
     group: tile?.config?.group || '',
     appearance: { accent: '', iconBg: '', hideTitle: false, ...(tile?.config?.appearance || {}) },
     // panel config, seeded from the registry defaults when adding
@@ -66,6 +68,27 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
   function updateAppearance(field, value) {
     setForm((f) => ({ ...f, appearance: { ...f.appearance, [field]: value } }));
   }
+  function pickIntegration(id) {
+    // Which views exist (and which other integrations are mergeable) depends on the
+    // integration's type, so a fresh pick starts the "Show"/"Also include" choices over.
+    setForm((f) => ({ ...f, integration_id: id, views: [], moreIntegrationIds: [] }));
+  }
+  function toggleView(key) {
+    setForm((f) => {
+      const views = f.views.includes(key) ? f.views.filter((k) => k !== key) : [...f.views, key];
+      // "Also include" only makes sense for exactly one selected view (see WidgetTile.jsx's
+      // merge logic) — drop it the moment that stops being true.
+      return { ...f, views, moreIntegrationIds: views.length === 1 ? f.moreIntegrationIds : [] };
+    });
+  }
+  function toggleMergeIntegration(id) {
+    setForm((f) => ({
+      ...f,
+      moreIntegrationIds: f.moreIntegrationIds.includes(id)
+        ? f.moreIntegrationIds.filter((x) => x !== id)
+        : [...f.moreIntegrationIds, id],
+    }));
+  }
 
   function onPickType(next) {
     setType(next);
@@ -91,7 +114,19 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
 
     if (isWidget) {
       if (!form.integration_id) return;
-      onSave({ type: 'widget', title, integration_id: Number(form.integration_id), w, h, config: commonConfig() });
+      const widgetCfg = {};
+      if (form.views.length) widgetCfg.views = form.views;
+      if (form.views.length === 1 && form.moreIntegrationIds.length) {
+        widgetCfg.moreIntegrationIds = form.moreIntegrationIds;
+      }
+      onSave({
+        type: 'widget',
+        title,
+        integration_id: Number(form.integration_id),
+        w,
+        h,
+        config: { ...widgetCfg, ...commonConfig() },
+      });
       return;
     }
 
@@ -118,6 +153,25 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
   }
 
   const panelEntry = registryEntry(type);
+
+  // "Show" options come from the picked integration's type (its declared view keys),
+  // not from the integration itself — view selection lives on the tile so two tiles
+  // on the same integration can each show something different.
+  const selectedIntegration = integrations.value.find((i) => i.id === Number(form.integration_id));
+  const viewCatalog = selectedIntegration
+    ? availableIntegrations.value.find((t) => t.key === selectedIntegration.key)?.views || {}
+    : {};
+  const viewKeys = Object.keys(viewCatalog);
+  const singleViewKey = form.views.length === 1 ? form.views[0] : null;
+  // Other integrations that can produce this same view — offered as "also include"
+  // only when exactly one view is picked, so the merge target is unambiguous.
+  const mergeCandidates = singleViewKey
+    ? integrations.value.filter((i) => {
+        if (i.id === Number(form.integration_id)) return false;
+        const cat = availableIntegrations.value.find((t) => t.key === i.key)?.views || {};
+        return Boolean(cat[singleViewKey]);
+      })
+    : [];
 
   return (
     <div class="modal-backdrop" onClick={onClose}>
@@ -153,7 +207,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
         {isWidget && (
           <label>
             Integration
-            <select value={form.integration_id} onChange={(e) => update('integration_id', e.target.value)}>
+            <select value={form.integration_id} onChange={(e) => pickIntegration(e.target.value)}>
               {integrations.value.length === 0 && <option value="">No integrations configured</option>}
               {integrations.value.map((i) => (
                 <option key={i.id} value={i.id}>
@@ -162,6 +216,38 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
               ))}
             </select>
           </label>
+        )}
+
+        {isWidget && viewKeys.length > 0 && (
+          <div class="multiselect-field">
+            <span class="multiselect-label">Show</span>
+            {viewKeys.map((k) => (
+              <label key={k} class="checkbox-field">
+                <input type="checkbox" checked={form.views.includes(k)} onChange={() => toggleView(k)} />
+                {viewCatalog[k]}
+              </label>
+            ))}
+            <p class="field-hint">Nothing checked uses the first view. Check several to stack them in one tile.</p>
+          </div>
+        )}
+
+        {isWidget && singleViewKey && mergeCandidates.length > 0 && (
+          <div class="multiselect-field">
+            <span class="multiselect-label">Also include</span>
+            {mergeCandidates.map((i) => (
+              <label key={i.id} class="checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={form.moreIntegrationIds.includes(i.id)}
+                  onChange={() => toggleMergeIntegration(i.id)}
+                />
+                {i.name}
+              </label>
+            ))}
+            <p class="field-hint">
+              Merges {(viewCatalog[singleViewKey] || '').toLowerCase()} from these into the same tile.
+            </p>
+          </div>
         )}
 
         {isPanel && panelEntry && (

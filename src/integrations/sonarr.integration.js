@@ -11,7 +11,7 @@ import {
   fetchArrCalendar,
   arrPoster,
 } from './_arrBase.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 const LIST_CAP = 25;
 
@@ -29,17 +29,18 @@ export default class SonarrIntegration extends BaseIntegration {
   static key = 'sonarr';
   static title = 'Sonarr';
   static defaultInterval = 60;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API Key', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'queue' }),
       { name: 'upcomingDays', label: 'Upcoming window (days)', type: 'number', required: false },
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'queue'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

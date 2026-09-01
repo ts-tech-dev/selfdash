@@ -8,7 +8,26 @@ import {
   commonConfig,
   normalizeOpenMode,
   clampInt,
+  widgetConfig,
 } from '../../src/shared/tileConfig.js';
+import { openDatabase } from '../../src/db/index.js';
+import { makeTmpDir } from '../helpers/tmpdir.mjs';
+
+function withDb(t) {
+  const { dir, cleanup } = makeTmpDir();
+  const db = openDatabase(dir);
+  t.after(() => {
+    db.close();
+    cleanup();
+  });
+  return db;
+}
+
+function makeIntegration(db, name = 'Test') {
+  return db
+    .prepare("INSERT INTO integrations (key, name, config_json, interval, enabled, last_status) VALUES ('gluetun', ?, '{}', 60, 1, 'unknown')")
+    .run(name).lastInsertRowid;
+}
 
 test('TILE_TYPES / PANEL_TYPES membership', () => {
   for (const t of ['link', 'widget', 'iframe', 'clock', 'weather', 'notes', 'search', 'rss', 'calendar', 'bookmarks', 'customapi', 'resources']) {
@@ -111,4 +130,45 @@ test('sanitizeTileConfig merges common fields onto panel config', () => {
   const c = sanitizeTileConfig('notes', { markdown: '# hi', group: 'Docs' });
   assert.equal(c.markdown, '# hi');
   assert.equal(c.group, 'Docs');
+});
+
+test('widgetConfig: dedupes/caps views, empty selection omits the key', (t) => {
+  const db = withDb(t);
+  const primary = makeIntegration(db);
+  assert.deepEqual(widgetConfig(db, { views: ['queue', 'stats', 'queue'] }, primary), { views: ['queue', 'stats'] });
+  assert.deepEqual(widgetConfig(db, { views: [] }, primary), {});
+  assert.deepEqual(widgetConfig(db, {}, primary), {});
+  const many = Array.from({ length: 20 }, (_, i) => `v${i}`);
+  assert.equal(widgetConfig(db, { views: many }, primary).views.length, 8);
+});
+
+test('widgetConfig: moreIntegrationIds drops self-references, dangling ids, and non-integers; dedupes; caps at 12', (t) => {
+  const db = withDb(t);
+  const primary = makeIntegration(db, 'Primary');
+  const other1 = makeIntegration(db, 'Other 1');
+  const other2 = makeIntegration(db, 'Other 2');
+
+  const cfg = widgetConfig(
+    db,
+    { views: ['calendar'], moreIntegrationIds: [other1, other2, other1, primary, 999999, 'nope', -3, 1.5] },
+    primary
+  );
+  assert.deepEqual(new Set(cfg.moreIntegrationIds), new Set([other1, other2]));
+
+  const manyIds = Array.from({ length: 30 }, () => makeIntegration(db));
+  const capped = widgetConfig(db, { views: ['calendar'], moreIntegrationIds: manyIds }, primary);
+  assert.equal(capped.moreIntegrationIds.length, 12);
+});
+
+test('widgetConfig: moreIntegrationIds is dropped entirely unless exactly one view is selected', (t) => {
+  const db = withDb(t);
+  const primary = makeIntegration(db, 'Primary');
+  const other = makeIntegration(db, 'Other');
+
+  assert.equal(widgetConfig(db, { views: [], moreIntegrationIds: [other] }, primary).moreIntegrationIds, undefined);
+  assert.equal(
+    widgetConfig(db, { views: ['a', 'b'], moreIntegrationIds: [other] }, primary).moreIntegrationIds,
+    undefined
+  );
+  assert.deepEqual(widgetConfig(db, { views: ['a'], moreIntegrationIds: [other] }, primary).moreIntegrationIds, [other]);
 });

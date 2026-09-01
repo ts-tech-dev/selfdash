@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Gluetun's HTTP control server (default :8000). Auth is optional — older builds have none;
 // newer builds can require a Bearer API key (HTTP_CONTROL_SERVER_AUTH). The VPN-status path
@@ -13,16 +13,17 @@ export default class GluetunIntegration extends BaseIntegration {
   static key = 'gluetun';
   static title = 'Gluetun';
   static defaultInterval = 60;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Control server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API key (if control server auth is enabled)', type: 'password', required: false },
-      viewField(VIEWS, { defaultKey: 'status' }),
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'status'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

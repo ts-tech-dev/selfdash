@@ -1,4 +1,4 @@
-import { integrations } from '../store.js';
+import { integrations, availableIntegrations } from '../store.js';
 
 function StatsView({ items }) {
   return (
@@ -120,8 +120,9 @@ function MonthGrid({ month, today, byDay }) {
                     <span
                       key={j}
                       class="widget-cal-event"
-                      title={e.subtitle ? `${e.title} — ${e.subtitle}` : e.title}
+                      title={[e.title, e.subtitle, e.source].filter(Boolean).join(' — ')}
                     >
+                      {e.source && <span class="widget-cal-event-src">{e.source}</span>}
                       {e.title}
                     </span>
                   ))}
@@ -184,6 +185,7 @@ const RENDERERS = {
 };
 
 function renderModel(model) {
+  if (!model) return <p class="widget-empty">No data</p>;
   if (model.type === 'error') return <p class="widget-empty">{model.error}</p>;
   const Renderer = RENDERERS[model.type];
   return Renderer ? (
@@ -240,41 +242,109 @@ function SectionsView({ sections }) {
   );
 }
 
-export function WidgetTile({ tile }) {
-  const integration = tile.integration_id
-    ? integrations.value.find((i) => i.id === tile.integration_id)
-    : null;
+// Which views a merged model can meaningfully combine — a shared calendar, or
+// concatenated rows tagged with where they came from. Types like stats/nowplaying
+// don't merge into one number/card; those fall back to a section per source instead
+// (same layout the "several views on one integration" case already uses).
+function mergeCalendar(perSource) {
+  const items = [];
+  for (const { source, model } of perSource) {
+    if (!model || model.type !== 'calendar') continue;
+    for (const it of model.items || []) items.push({ ...it, source });
+  }
+  items.sort((a, b) => a.ts - b.ts);
+  return { type: 'calendar', items };
+}
 
-  if (!integration) {
+function mergeListLike(type, perSource) {
+  const items = [];
+  for (const { source, model } of perSource) {
+    if (!model || model.type !== type) continue;
+    for (const it of model.items || []) items.push({ ...it, subtitle: it.subtitle ? `${it.subtitle} · ${source}` : source });
+  }
+  return { type, items };
+}
+
+function mergeModel(type, perSource) {
+  if (type === 'calendar') return mergeCalendar(perSource);
+  if (type === 'list' || type === 'queue') return mergeListLike(type, perSource);
+  return null;
+}
+
+function viewLabel(integrationKey, viewKey) {
+  const typeDef = availableIntegrations.value.find((t) => t.key === integrationKey);
+  return typeDef?.views?.[viewKey] || viewKey;
+}
+
+function byViewOf(integration, key) {
+  return integration?.data?.byView?.[key] || null;
+}
+
+export function WidgetTile({ tile }) {
+  const primary = tile.integration_id ? integrations.value.find((i) => i.id === tile.integration_id) : null;
+
+  if (!primary) {
     return <p class="widget-empty">Integration not found (was it deleted?)</p>;
   }
 
-  if (!integration.data) {
+  if (!primary.data) {
     return (
       <p class="widget-empty">
-        {integration.last_status === 'unreachable'
-          ? `Unreachable: ${integration.last_error}`
-          : 'Waiting for first poll…'}
+        {primary.last_status === 'unreachable' ? `Unreachable: ${primary.last_error}` : 'Waiting for first poll…'}
       </p>
     );
   }
 
+  // Extra integrations to merge in (config.moreIntegrationIds — see TileModal.jsx's
+  // "Also include"). A stale id (integration deleted, or just not found yet) is
+  // dropped silently rather than erroring the whole tile.
+  const extraIds = Array.isArray(tile.config?.moreIntegrationIds) ? tile.config.moreIntegrationIds : [];
+  const extras = extraIds.map((id) => integrations.value.find((i) => i.id === id)).filter(Boolean);
+  const sources = [primary, ...extras];
+
+  const availableViewKeys = Object.keys(primary.data.byView || {});
+  const configuredViews = Array.isArray(tile.config?.views)
+    ? tile.config.views.filter((k) => availableViewKeys.includes(k))
+    : [];
+  // No selection yet (a brand new tile, or one whose selection no longer matches this
+  // integration type) -> the integration's first declared view, same as the old
+  // integration-level default.
+  const viewKeys = configuredViews.length ? configuredViews : availableViewKeys.slice(0, 1);
+
+  let body;
+  let sectionsMode = false;
+
+  if (viewKeys.length === 1 && extras.length > 0) {
+    const key = viewKeys[0];
+    const merged = mergeModel(
+      key,
+      sources.map((i) => ({ source: i.name, model: byViewOf(i, key) }))
+    );
+    if (merged) {
+      body = renderModel(merged);
+    } else {
+      sectionsMode = true;
+      const sections = sources.map((i) => ({ title: i.name, ...(byViewOf(i, key) || { type: 'error', error: 'no data' }) }));
+      body = <SectionsView sections={sections} />;
+    }
+  } else if (viewKeys.length === 1) {
+    body = renderModel(byViewOf(primary, viewKeys[0]));
+  } else {
+    sectionsMode = true;
+    const sections = viewKeys.map((k) => ({ title: viewLabel(primary.key, k), ...(byViewOf(primary, k) || { type: 'error', error: 'no data' }) }));
+    body = <SectionsView sections={sections} />;
+  }
+
+  const staleSources = sources.filter((i) => i.last_status === 'unreachable');
+
   return (
-    <div
-      class={`widget-body${integration.data.type === 'sections' ? ' widget-body-sections' : ''}${
-        integration.enabled ? '' : ' widget-disabled'
-      }`}
-    >
-      {integration.last_status === 'unreachable' && (
-        <div class="widget-stale-banner" title={integration.last_error}>
-          stale data — {integration.last_error}
+    <div class={`widget-body${sectionsMode ? ' widget-body-sections' : ''}${primary.enabled ? '' : ' widget-disabled'}`}>
+      {staleSources.length > 0 && (
+        <div class="widget-stale-banner" title={staleSources.map((i) => `${i.name}: ${i.last_error}`).join('\n')}>
+          stale data — {staleSources.map((i) => i.name).join(', ')}
         </div>
       )}
-      {integration.data.type === 'sections' ? (
-        <SectionsView sections={integration.data.sections || []} />
-      ) : (
-        renderModel(integration.data)
-      )}
+      {body}
     </div>
   );
 }

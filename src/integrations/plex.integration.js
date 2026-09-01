@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 const VIEWS = {
   nowplaying: { label: 'Now playing', run: fetchNowPlaying },
@@ -10,16 +10,17 @@ export default class PlexIntegration extends BaseIntegration {
   static key = 'plex';
   static title = 'Plex';
   static defaultInterval = 45;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'token', label: 'X-Plex-Token', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'nowplaying' }),
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'nowplaying'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

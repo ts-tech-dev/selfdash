@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 const VIEWS = {
   queue: { label: 'Download queue', run: fetchQueue },
@@ -24,17 +24,18 @@ export default class QbittorrentIntegration extends BaseIntegration {
   static key = 'qbittorrent';
   static title = 'qBittorrent';
   static defaultInterval = 30;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'username', label: 'Username', type: 'text', required: false },
       { name: 'password', label: 'Password', type: 'password', required: false },
-      viewField(VIEWS, { defaultKey: 'queue' }),
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'queue'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

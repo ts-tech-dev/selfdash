@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Tautulli exposes a single endpoint: GET /api/v2?apikey=<key>&cmd=<command>&<params...>
 // Every response is wrapped in { response: { result: 'success' | 'error', message, data } }
@@ -18,11 +18,12 @@ export default class TautulliIntegration extends BaseIntegration {
   static key = 'tautulli';
   static title = 'Tautulli';
   static defaultInterval = 30;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API Key', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'activity' }),
       // The image proxy needs the API key as a query param, so enabling art puts the key
       // in browser-visible <img> URLs — same trade-off the Plex integration already makes
       // with X-Plex-Token. Off by default; opt in if the widget is only exposed to trusted eyes.
@@ -32,7 +33,7 @@ export default class TautulliIntegration extends BaseIntegration {
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'activity'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

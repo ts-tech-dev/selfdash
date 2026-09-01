@@ -13,6 +13,12 @@ export default async function integrationsRoutes(app) {
       title: Cls.title || key,
       defaultInterval: Cls.defaultInterval || 60,
       configSchema: Cls.configSchema || { fields: [] },
+      // { viewKey: label } — which views this integration type can produce, in its
+      // declared order. Empty for integrations with a single fixed shape. Tiles use
+      // this to build their own "Show" picker (view selection lives on the tile now,
+      // not the integration, so two tiles on the same integration can show different
+      // things — see web/components/TileModal.jsx).
+      views: Cls.views || {},
     }));
   });
 
@@ -100,6 +106,11 @@ export default async function integrationsRoutes(app) {
     app.poller.unschedule(id);
     const info = db.prepare('DELETE FROM integrations WHERE id = ?').run(id);
     if (info.changes === 0) return reply.code(404).send({ error: 'not found' });
+    // Tiles pointed at this integration as their *primary* binding are handled by the
+    // integration_id FK's ON DELETE SET NULL. A tile that also merged this integration in
+    // as an extra source (config.moreIntegrationIds — see tileConfig.js) isn't FK-tracked,
+    // so prune it here.
+    pruneIntegrationFromWidgetTiles(db, id);
     return reply.code(204).send();
   });
 
@@ -110,6 +121,29 @@ export default async function integrationsRoutes(app) {
     await app.poller.pollNow(id);
     return mapIntegration(db.prepare('SELECT * FROM integrations WHERE id = ?').get(id), registry, crypto);
   });
+}
+
+function pruneIntegrationFromWidgetTiles(db, integrationId) {
+  const rows = db.prepare("SELECT id, config_json FROM tiles WHERE type = 'widget'").all();
+  db.exec('BEGIN');
+  try {
+    for (const t of rows) {
+      let cfg;
+      try {
+        cfg = JSON.parse(t.config_json || '{}');
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(cfg.moreIntegrationIds) || !cfg.moreIntegrationIds.includes(integrationId)) continue;
+      cfg.moreIntegrationIds = cfg.moreIntegrationIds.filter((x) => x !== integrationId);
+      if (!cfg.moreIntegrationIds.length) delete cfg.moreIntegrationIds;
+      db.prepare('UPDATE tiles SET config_json = ? WHERE id = ?').run(JSON.stringify(cfg), t.id);
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
 }
 
 function clampInterval(n, floor) {
@@ -126,13 +160,6 @@ function mapIntegration(row, registry, crypto) {
     config = decodeConfig(row.config_json, crypto);
   } catch {
     config = {};
-  }
-
-  // Legacy single `view` string -> `views` array, so an existing instance's selection shows
-  // up pre-ticked in the multiselect. Only when this integration actually has a `views` field.
-  const viewsField = IntegrationClass?.configSchema?.fields?.find((f) => f.name === 'views');
-  if (viewsField && config.view != null && !Array.isArray(config.views)) {
-    config = { ...config, views: [config.view] };
   }
 
   let data = null;

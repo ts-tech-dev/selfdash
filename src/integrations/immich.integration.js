@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Immich: /api with an `x-api-key` header (create the key in Account Settings -> API Keys).
 // The statistics/storage paths were renamed between versions — /api/server/* on recent
@@ -14,16 +14,17 @@ export default class ImmichIntegration extends BaseIntegration {
   static key = 'immich';
   static title = 'Immich';
   static defaultInterval = 300;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API Key', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'stats' }),
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'stats'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { startServer } from '../helpers/server.mjs';
 
 describe('config export / import (YAML)', () => {
@@ -66,6 +66,46 @@ describe('config export / import (YAML)', () => {
       body: 'version: 9\npages: []\n',
     });
     assert.equal(badVer.status, 400);
+  });
+
+  it("export/import round-trips a widget tile's moreIntegrationIds through integration refs, not raw ids", async () => {
+    const page = (await s.request('/api/pages')).body[0];
+    const primary = (
+      await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'Merge Primary', config: { url: 'http://p:1' } } })
+    ).body;
+    const extra = (
+      await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'Merge Extra', config: { url: 'http://e:1' } } })
+    ).body;
+    await s.request(`/api/pages/${page.id}/tiles`, {
+      method: 'POST',
+      body: { type: 'widget', integration_id: primary.id, config: { views: ['status'], moreIntegrationIds: [extra.id] } },
+    });
+
+    const doc = parseYaml(await (await fetch(`${s.base}/api/config/export`)).text());
+    const tileDoc = doc.pages.flatMap((p) => p.tiles).find((t) => t.type === 'widget' && t.config?.moreIntegrationIds);
+    assert.ok(tileDoc, 'exported doc has the widget tile with moreIntegrationIds');
+    assert.equal(typeof tileDoc.config.moreIntegrationIds[0], 'string', 'exported as a portable ref, not a raw db id');
+    const extraRef = doc.integrations.find((i) => i.name === 'Merge Extra').ref;
+    assert.deepEqual(tileDoc.config.moreIntegrationIds, [extraRef]);
+
+    // Re-import the exact exported doc (same pattern as the "replaces everything" test above):
+    // every integration gets a fresh id, so a raw-id round-trip would silently point at the
+    // wrong integration (or nothing) — the ref translation is what's under test here.
+    const importRes = await fetch(`${s.base}/api/config/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/yaml' },
+      body: stringifyYaml(doc),
+    });
+    assert.equal(importRes.status, 200);
+
+    const integrationsAfter = (await s.request('/api/integrations')).body;
+    const newPrimary = integrationsAfter.find((i) => i.name === 'Merge Primary');
+    const newExtra = integrationsAfter.find((i) => i.name === 'Merge Extra');
+    const pageAfter = (await s.request('/api/pages')).body[0];
+    const tilesAfter = (await s.request(`/api/pages/${pageAfter.id}/tiles`)).body;
+    const widgetAfter = tilesAfter.find((t) => t.integration_id === newPrimary.id);
+    assert.ok(widgetAfter, 'widget tile survived the reimport, bound to the new primary id');
+    assert.deepEqual(widgetAfter.config.moreIntegrationIds, [newExtra.id]);
   });
 
   it('POST /api/config/import?settings=0 leaves settings untouched', async () => {

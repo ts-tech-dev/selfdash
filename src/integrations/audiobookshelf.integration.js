@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Audiobookshelf: bearer-token auth (Settings -> Users -> your user -> API Token, or the
 // long-lived token from /api/me). All endpoints below work with a normal (non-admin) user
@@ -17,17 +17,18 @@ export default class AudiobookshelfIntegration extends BaseIntegration {
   static key = 'audiobookshelf';
   static title = 'Audiobookshelf';
   static defaultInterval = 120;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API Key', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'stats' }),
       { name: 'recentLimit', label: 'Rows for list views (max 25)', type: 'number', required: false },
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'stats'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

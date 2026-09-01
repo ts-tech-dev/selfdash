@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Bookdrop: a self-hosted tracker for upcoming audiobook releases from the authors in your
 // Audiobookshelf library. Plain JSON API under /api/v1, no auth by default (an optional
@@ -19,17 +19,18 @@ export default class BookdropIntegration extends BaseIntegration {
   static key = 'bookdrop';
   static title = 'Bookdrop';
   static defaultInterval = 900;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API key (only if the API is behind auth)', type: 'password', required: false },
-      viewField(VIEWS, { defaultKey: 'stats' }),
       { name: 'listLimit', label: 'Rows for the upcoming list (max 30)', type: 'number', required: false },
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'stats'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

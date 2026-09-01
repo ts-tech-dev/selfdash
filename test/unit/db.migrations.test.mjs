@@ -21,12 +21,13 @@ function withDb(t) {
   return db;
 }
 
-test('openDatabase: applies every .sql migration plus the JS layout backfill', (t) => {
+test('openDatabase: applies every .sql migration plus the JS backfills', (t) => {
   const db = withDb(t);
   const applied = db.prepare('SELECT id FROM migrations ORDER BY id').all().map((r) => r.id);
   for (const f of sqlMigrations) assert.ok(applied.includes(f), `sql migration ${f} applied`);
-  assert.ok(applied.includes('js:backfill-tile-xy-1'), 'JS backfill marker recorded');
-  assert.equal(applied.length, sqlMigrations.length + 1);
+  assert.ok(applied.includes('js:backfill-tile-xy-1'), 'JS layout backfill marker recorded');
+  assert.ok(applied.includes('js:backfill-widget-views-1'), 'JS widget-views backfill marker recorded');
+  assert.equal(applied.length, sqlMigrations.length + 2);
 });
 
 test('openDatabase: creates the core tables', (t) => {

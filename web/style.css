@@ -956,6 +956,12 @@ body[data-has-bg]::before {
   color: var(--text-dim);
 }
 
+.field-hint {
+  margin: 2px 0 0;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
 .status-badge {
   font-size: 0.7rem;
   padding: 2px 8px;
@@ -1265,6 +1271,19 @@ body[data-has-bg]::before {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.widget-cal-event-src {
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 3px;
+}
+
+.widget-cal-event-src::after {
+  content: '·';
+  margin-left: 3px;
+  color: var(--text-dim);
+  font-weight: 400;
 }
 
 .widget-cal-more {

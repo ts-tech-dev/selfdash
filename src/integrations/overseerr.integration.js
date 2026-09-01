@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Overseerr / Jellyseerr / seerr all speak the same API: /api/v1, X-Api-Key header.
 // The /count endpoints are cheap; the list views resolve each item's title through the
@@ -18,17 +18,18 @@ export default class OverseerrIntegration extends BaseIntegration {
   static key = 'overseerr';
   static title = 'Overseerr';
   static defaultInterval = 120;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API Key', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'requests' }),
       { name: 'listLimit', label: 'Rows for list views (max 25)', type: 'number', required: false },
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'requests'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

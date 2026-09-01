@@ -124,6 +124,49 @@ const PANEL_SANITIZERS = {
   },
 };
 
+// Widget-tile-only config: which of the bound integration's views to show, and which
+// *other* integrations to merge in alongside it. View selection lives here (on the
+// tile) rather than on the integration, so two tiles pointed at the same integration
+// can each show something different. `db` is used to drop dangling integration ids
+// (deleted, or typo'd from a hand-edited YAML import) rather than trusting the client.
+export function widgetConfig(db, raw, primaryIntegrationId) {
+  const c = raw || {};
+  const out = {};
+
+  const views = [
+    ...new Set(
+      (Array.isArray(c.views) ? c.views : [])
+        .filter((v) => typeof v === 'string' && v.trim())
+        .map((v) => v.trim().slice(0, 40))
+    ),
+  ].slice(0, 8);
+  if (views.length) out.views = views;
+
+  // Merging in other integrations' data only makes sense for a single, unambiguous
+  // view (see WidgetTile.jsx's mergeModel) — enforced here too, not just in the tile
+  // modal's UI, so a YAML import or a raw API call can't smuggle in a nonsensical combo.
+  const extraIds =
+    views.length === 1
+      ? [
+          ...new Set(
+            (Array.isArray(c.moreIntegrationIds) ? c.moreIntegrationIds : [])
+              .map((v) => Number(v))
+              .filter((n) => Number.isInteger(n) && n > 0 && n !== primaryIntegrationId)
+          ),
+        ].slice(0, 12)
+      : [];
+  if (extraIds.length) {
+    const placeholders = extraIds.map(() => '?').join(',');
+    const found = new Set(
+      db.prepare(`SELECT id FROM integrations WHERE id IN (${placeholders})`).all(...extraIds).map((r) => r.id)
+    );
+    const kept = extraIds.filter((id) => found.has(id));
+    if (kept.length) out.moreIntegrationIds = kept;
+  }
+
+  return out;
+}
+
 // Fields valid on any tile regardless of type (group heading + per-tile appearance).
 export function commonConfig(raw) {
   const out = {};
@@ -180,7 +223,12 @@ export function resolveTileFields(db, type, body, existing) {
       ? db.prepare('SELECT id FROM integrations WHERE id = ?').get(integrationId)
       : null;
     if (!integration) throw new Error('integration_id must reference an existing integration');
-    return { url: null, open_mode: 'newtab', integration_id: integrationId, config: common };
+    return {
+      url: null,
+      open_mode: 'newtab',
+      integration_id: integrationId,
+      config: { ...widgetConfig(db, rawConfig, integrationId), ...common },
+    };
   }
 
   if (PANEL_TYPES.has(type)) {

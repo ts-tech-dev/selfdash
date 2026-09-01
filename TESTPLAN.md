@@ -5,7 +5,7 @@ route, and shared helper is listed here with its test cases and where they are
 verified. Run this after **every** change; extend it whenever you add a feature.
 
 - **How to run:** [`test/README.md`](test/README.md)
-- **Automated suite:** `npm test` (unit + API) — 135+ cases, ~10s, no network, no browser
+- **Automated suite:** `npm test` (unit + API) — 150+ cases, ~10s, no network, no browser
 - **Full suite:** `npm run test:all` (adds the browser smoke; needs Chrome)
 
 ---
@@ -83,6 +83,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T16 | 2-D packing: `occupancyOf` / `placeBox` / `nextFreeSlot` first-fit | ✅ `unit/shared.gridPack` |
 | T17 | Size presets ↔ `w×h` round-trip | ✅ `unit/shared.misc` |
 | T18 | Tile drag/resize UI, group collapse (localStorage), "Add tile" slot picker | 🖐️ §9 |
+| T19 | `widgetConfig`: dedupes/caps `views` (max 8); `moreIntegrationIds` drops self-refs, dangling ids, non-integers, dedupes, caps at 12, and is dropped entirely unless exactly one view is selected (server-enforced, not just the tile modal's UI) | ✅ `unit/shared.tileConfig` · `api/tiles` |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
@@ -117,7 +118,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 ### 3.6 Integrations (`src/routes/integrations.js`, `src/integrations/*`)
 | # | Case | Where |
 |---|---|---|
-| I1 | `GET /available` lists shipped integrations, each with `configSchema.fields` + `defaultInterval` | ✅ `api/integrations` |
+| I1 | `GET /available` lists shipped integrations, each with `configSchema.fields` + `defaultInterval` + `views` catalog (`{viewKey: label}`, empty schema no longer carries a "Show" field) | ✅ `api/integrations` |
 | I2 | Every `*.integration.js` registers under its static `key`, implements `fetchData()`, has a well-formed schema | ✅ `unit/integrations.registry` |
 | I3 | Runtime-dropped `DATA_DIR/integrations/*.integration.js` overrides a shipped key | ✅ `unit/integrations.registry` |
 | I4 | `POST` unknown key → 400 | ✅ `api/integrations` |
@@ -128,11 +129,12 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | I9 | `PATCH` blank password keeps the stored secret (`mergeConfig`) | ✅ `api/integrations` · `unit/integrations.configCodec` |
 | I10 | `PATCH` validates the merged config → 400 | ✅ `api/integrations` |
 | I11 | `POST /:id/poll` runs immediately, records `last_status`/`last_error` | ✅ `api/integrations` |
-| I12 | `DELETE` (204); repeat → 404; unschedules poller | ✅ `api/integrations` |
+| I12 | `DELETE` (204); repeat → 404; unschedules poller; also prunes the id out of any tile's `config.moreIntegrationIds` (not FK-tracked, since it lives in JSON) | ✅ `api/integrations` |
 | I13 | Config at rest: AES-256-GCM round-trip when `APP_SECRET` set; plaintext JSON when not | ✅ `unit/lib.crypto` · `unit/integrations.configCodec` |
 | I14 | Wrong key / tampered ciphertext fails closed | ✅ `unit/lib.crypto` |
 | I15 | Per-integration upstream parsing (qbit torrents, tautulli now-playing, …) | ⏭️ needs live services; covered indirectly by I2 + view helpers |
 | I16 | Sonarr/Radarr `calendar` view: maps upstream records to `{ts,title,subtitle}`, drops undated records, sorts ascending, picks the earliest of several release dates, honors `config.upcomingDays` for the window | ✅ `unit/integrations.arrCalendar` |
+| I17 | `runAllViews`: fetches every declared view every poll (not just a configured subset), keyed by view key in `byView`; one view failing lands as `{type:'error'}` in its own slot without taking the rest down; every view failing throws so the poll is marked unreachable and last-good data stays on screen | ✅ `unit/integrations.views` |
 
 ### 3.7 Tile data proxies (`src/routes/tileData.js`)
 | # | Case | Where |
@@ -191,6 +193,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | G6 | `?settings=0` leaves settings untouched | ✅ `api/config` |
 | G7 | `${ENV}` resolution + `unresolvedSecrets` reporting on import | 🖐️ (add ✅ when touched) |
 | G8 | Multipart `.yaml` upload path (vs raw body) | 🖐️ |
+| G9 | A widget tile's `config.moreIntegrationIds` exports as portable integration `ref` strings (not raw db ids) and resolves back to the *new*, re-imported integration's id on import | ✅ `api/config` |
 
 ### 3.12 Persistence / schema (`src/db/`)
 | # | Case | Where |
@@ -320,10 +323,15 @@ Run after frontend changes or before a release. ~5 minutes.
    `document.title='x'` — both take effect.
 9. **Integrations:** add one (e.g. gluetun) with a bogus URL → shows an error
    status; edit the name without re-entering the password → still works.
-   Add a Sonarr or Radarr integration against a real instance, pick the
-   "Release calendar" view → month grid renders, today is highlighted, days
-   with releases show titles, hovering an event shows its subtitle in a
-   tooltip.
+   Add a Sonarr or Radarr integration against a real instance, then add a
+   widget tile for it: the tile modal's "Show" list comes from the
+   integration's type, not a global default. Add a second widget tile on the
+   *same* integration with a different view checked — confirm the two tiles
+   show different things (view selection is per-tile). With exactly one view
+   checked and a second same-type integration configured, "Also include"
+   appears; check it and confirm the tile merges both — for "Release
+   calendar" specifically, events from each source carry a small colored tag
+   naming which integration they came from.
 10. **Backup:** export a zip; re-import it → app restarts, data intact.
 11. **Config:** export YAML, edit the site title, re-import → applied.
 12. **PWA:** install, go offline, reload → shell still loads.

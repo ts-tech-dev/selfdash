@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Prowlarr is the *arr indexer manager — v1 API, X-Api-Key header, same shape family as
 // Radarr/Sonarr but its useful widget data is indexer counts/queries rather than a queue.
@@ -14,16 +14,17 @@ export default class ProwlarrIntegration extends BaseIntegration {
   static key = 'prowlarr';
   static title = 'Prowlarr';
   static defaultInterval = 120;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API Key', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'stats' }),
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'stats'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

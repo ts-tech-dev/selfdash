@@ -20,6 +20,18 @@ describe('integrations API', () => {
     }
   });
 
+  it('GET /available exposes each integration\'s view catalog (view selection lives on the tile now)', async () => {
+    const r = await s.request('/api/integrations/available');
+    const gluetun = r.body.find((i) => i.key === 'gluetun');
+    const radarr = r.body.find((i) => i.key === 'radarr');
+    assert.deepEqual(gluetun.views, { status: 'VPN status' });
+    assert.deepEqual(Object.keys(radarr.views), ['queue', 'stats', 'upcoming', 'calendar', 'history', 'health', 'disk']);
+    // No integration schema carries the old "Show" field any more — it moved to the tile.
+    for (const typeDef of r.body) {
+      assert.ok(!typeDef.configSchema.fields.some((f) => f.name === 'views'), `${typeDef.key}: no views field in config schema`);
+    }
+  });
+
   it('POST rejects an unknown key', async () => {
     const r = await s.request('/api/integrations', { method: 'POST', body: { key: 'nope', config: {} } });
     assert.equal(r.status, 400);
@@ -94,5 +106,29 @@ describe('integrations API', () => {
     });
     assert.equal((await s.request(`/api/integrations/${created.id}`, { method: 'DELETE' })).status, 204);
     assert.equal((await s.request(`/api/integrations/${created.id}`, { method: 'DELETE' })).status, 404);
+  });
+
+  it('DELETE prunes the integration from any tile that merged it in as an extra source', async () => {
+    const primary = (
+      await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'Primary', config: { url: 'http://a:1' } } })
+    ).body;
+    const extra = (
+      await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'Extra', config: { url: 'http://b:1' } } })
+    ).body;
+    const pageId = (await s.request('/api/pages')).body[0].id;
+    const tile = (
+      await s.request(`/api/pages/${pageId}/tiles`, {
+        method: 'POST',
+        body: { type: 'widget', integration_id: primary.id, config: { views: ['status'], moreIntegrationIds: [extra.id] } },
+      })
+    ).body;
+    assert.deepEqual(tile.config.moreIntegrationIds, [extra.id]);
+
+    assert.equal((await s.request(`/api/integrations/${extra.id}`, { method: 'DELETE' })).status, 204);
+
+    const after = (await s.request(`/api/pages/${pageId}/tiles`)).body.find((t) => t.id === tile.id);
+    assert.equal(after.config.moreIntegrationIds, undefined, 'the deleted extra id no longer lingers in config');
+    // The tile itself, and its primary binding, are untouched.
+    assert.equal(after.integration_id, primary.id);
   });
 });

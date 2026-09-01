@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 const VIEWS = {
   queue: { label: 'Download queue', run: fetchQueue },
@@ -10,16 +10,17 @@ export default class SabnzbdIntegration extends BaseIntegration {
   static key = 'sabnzbd';
   static title = 'SABnzbd';
   static defaultInterval = 30;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API Key', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'queue' }),
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'queue'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

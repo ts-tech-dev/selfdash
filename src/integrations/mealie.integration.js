@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Mealie: /api with a Bearer API token (User Settings -> API Tokens).
 // The stats path moved in Mealie v2: /api/households/statistics (v2) vs
@@ -13,16 +13,17 @@ export default class MealieIntegration extends BaseIntegration {
   static key = 'mealie';
   static title = 'Mealie';
   static defaultInterval = 300;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'token', label: 'API Token', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'stats' }),
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'stats'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

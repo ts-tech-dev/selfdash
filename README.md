@@ -228,10 +228,10 @@ export default class MyServiceIntegration {
     // the last successfully-fetched data in place so the UI doesn't blank out.
     if (!data.ok) throw new Error('service reported not-ok status');
 
-    // Must return one of four normalized shapes — the frontend has one generic
+    // Must return one of five normalized shapes — the frontend has one generic
     // renderer per type, so a new integration needs zero frontend changes.
     return {
-      type: 'stats', // 'stats' | 'nowplaying' | 'queue' | 'list'
+      type: 'stats', // 'stats' | 'nowplaying' | 'queue' | 'list' | 'calendar'
       items: [{ label: 'Status', value: 'OK' }],
     };
   }
@@ -244,33 +244,42 @@ integration. Field `type`s: `text`, `url`, `password`, `number`, `checkbox`, `se
 fields are never sent back to the frontend in plaintext (only whether one is set); leaving one
 blank when editing keeps the existing stored value.
 
-### Multiple views in one tile
+### Multiple views, and which one(s) a tile shows
 
 An integration that can show more than one thing (queue *and* library stats, say) uses the
-`_views.js` helper. Declare a `views` map and let the user pick any combination:
+`_views.js` helper. Declare a `views` map and always fetch every one of them, every poll:
 
 ```js
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 const VIEWS = {
   queue: { label: 'Download queue', run: (ctx) => fetchQueue(ctx) },
   stats: { label: 'Library stats',  run: (ctx) => fetchStats(ctx) },
 };
 
-static configSchema = { fields: [ /* url, apiKey, */ viewField(VIEWS, { defaultKey: 'queue' }) ] };
+static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+static configSchema = { fields: [ /* url, apiKey, */ ] };
 
 async fetchData(ctx) {
-  return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'queue'));
+  return runAllViews(ctx, VIEWS);
 }
 ```
 
-One view selected → that view's `WidgetModel`, unchanged. Several selected → a composite
-`{ type: 'sections', sections: [{ title, ...model }] }` that renders as stacked labelled
-sections in the single tile. If every selected view throws, `runViews` re-throws so the tile
-keeps its last good data; if only some fail, the failed ones render as an inline error section.
-A legacy single `view` string in stored config is still honoured.
+`fetchData` always returns `{ type: 'multi', byView: { <viewKey>: WidgetModel } }` — the
+integration doesn't decide what's displayed, it just keeps every view's data fresh. **Which**
+view(s) a tile shows is a property of the *tile*, not the integration (`tile.config.views`, set
+in the tile's edit modal via `static views`'s catalog) — so two tiles pointed at the same
+integration can each show something different. Static `views` is also what makes an
+integration "mergeable": a tile can pick a single view and, if another integration exposes a
+view with that same key (`tile.config.moreIntegrationIds`), combine both into one tile — e.g. one
+calendar showing releases from two Radarr instances, or all Radarr + Sonarr calendars together.
+`calendar`/`list`/`queue` views merge their `items`; `stats`/`nowplaying` fall back to one section
+per source since there's no sane way to merge a single number or now-playing card. See
+`mergeModel` in `web/components/WidgetTile.jsx`. If every view in `byView` failed, `runAllViews`
+throws so the tile keeps its last good data; a view that fails on its own becomes
+`{ type: 'error', error }` in its own slot instead of taking the rest down with it.
 
-The four `WidgetModel` shapes, and what each `items` entry looks like:
+The five `WidgetModel` shapes, and what each `items[]` entry looks like:
 
 | `type` | `items[]` shape | Used by |
 |---|---|---|
@@ -278,7 +287,7 @@ The four `WidgetModel` shapes, and what each `items` entry looks like:
 | `nowplaying` | `{ title, subtitle?, image?, progress? }` (0-1) | Plex, Tautulli (active sessions) |
 | `queue` | `{ title, status?, progress? }` (0-1) | qBittorrent, SABnzbd, Radarr, Sonarr, Readarr, Tautulli streams |
 | `list` | `{ title, subtitle?, image? }` | *arr upcoming, Tautulli history, Bookdrop |
-| `sections` | `{ title, ...model }` per section (composite; produced by `runViews`) | any multi-view integration |
+| `calendar` | `{ ts, title, subtitle? }` (`ts` = epoch ms; bucketed by local day, rendered as a month grid) | Radarr / Sonarr release calendar |
 
 Fourteen integrations ship out of the box (`src/integrations/*.integration.js`):
 

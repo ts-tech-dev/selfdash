@@ -6,7 +6,7 @@ import {
   fetchArrHealth,
   fetchArrDiskspace,
 } from './_arrBase.js';
-import { viewField, resolveViews, runViews } from './_views.js';
+import { runAllViews } from './_views.js';
 
 // Readarr, like Lidarr, is still on the v1 API — Radarr/Sonarr moved to v3.
 const V = 'v1';
@@ -23,17 +23,18 @@ export default class ReadarrIntegration extends BaseIntegration {
   static key = 'readarr';
   static title = 'Readarr';
   static defaultInterval = 60;
+  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+
   static configSchema = {
     fields: [
       { name: 'url', label: 'Server URL', type: 'url', required: true },
       { name: 'apiKey', label: 'API Key', type: 'password', required: true },
-      viewField(VIEWS, { defaultKey: 'queue' }),
       { name: 'upcomingDays', label: 'Upcoming window (days)', type: 'number', required: false },
     ],
   };
 
   async fetchData(ctx) {
-    return runViews(ctx, VIEWS, resolveViews(ctx.config, VIEWS, 'queue'));
+    return runAllViews(ctx, VIEWS);
   }
 }
 

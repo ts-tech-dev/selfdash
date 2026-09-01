@@ -49,6 +49,34 @@ describe('tiles API', () => {
     assert.match(r.body.error, /integration_id/);
   });
 
+  it('widget tile config: keeps views, drops a self-reference and a dangling id from moreIntegrationIds', async () => {
+    const a = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'A', config: { url: 'http://a:1' } } })).body;
+    const b = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'B', config: { url: 'http://b:1' } } })).body;
+
+    const r = await create({
+      type: 'widget',
+      integration_id: a.id,
+      config: { views: ['status'], moreIntegrationIds: [b.id, a.id, 999999] },
+    });
+    assert.equal(r.status, 201);
+    assert.deepEqual(r.body.config.views, ['status']);
+    assert.deepEqual(r.body.config.moreIntegrationIds, [b.id], 'self id and dangling id dropped, real other id kept');
+  });
+
+  it('widget tile config: moreIntegrationIds is dropped once more than one view is selected', async () => {
+    const a = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'C', config: { url: 'http://c:1' } } })).body;
+    const b = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'D', config: { url: 'http://d:1' } } })).body;
+
+    const r = await create({
+      type: 'widget',
+      integration_id: a.id,
+      config: { views: ['status', 'other'], moreIntegrationIds: [b.id] },
+    });
+    assert.equal(r.status, 201);
+    assert.deepEqual(r.body.config.views, ['status', 'other']);
+    assert.equal(r.body.config.moreIntegrationIds, undefined);
+  });
+
   it('unknown type falls back to link (and then needs a url)', async () => {
     const r = await create({ type: 'wormhole', url: 'https://x.y' });
     assert.equal(r.status, 201);
