@@ -12,7 +12,8 @@ export function sanitizePageOptions(o = {}) {
       columns: clampN(o.grid.columns, 1, 12, 6),
       gap: clampN(o.grid.gap, 0, 48, 14),
       rowHeight: clampN(o.grid.rowHeight, 40, 240, 96),
-      maxWidth: clampN(o.grid.maxWidth, 600, 2400, 1100),
+      // 0 = full width (default); otherwise a pixel cap on the tile canvas.
+      maxWidth: clampN(o.grid.maxWidth, 0, 2400, 0),
     };
   }
   if (o.background && typeof o.background === 'object') {

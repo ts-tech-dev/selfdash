@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { pages, addPage, renamePage, removePage, updatePageOptions, setPageBackground } from '../../store.js';
 
-const GRID_DEFAULTS = { columns: 6, gap: 14, rowHeight: 96, maxWidth: 1100 };
+const GRID_DEFAULTS = { columns: 6, gap: 14, rowHeight: 96, maxWidth: 0 };
 const BG_DEFAULTS = { url: '', blur: 0, dim: 0, opacity: 100 };
 
 function PageRow({ page }) {
@@ -66,8 +66,8 @@ function PageRow({ page }) {
                 <input type="number" min="40" max="240" value={grid.rowHeight} onInput={(e) => gridN('rowHeight', e.target.value)} />
               </label>
               <label>
-                Max width (px)
-                <input type="number" min="600" max="2400" value={grid.maxWidth} onInput={(e) => gridN('maxWidth', e.target.value)} />
+                Max width (px, 0 = full)
+                <input type="number" min="0" max="2400" value={grid.maxWidth} onInput={(e) => gridN('maxWidth', e.target.value)} />
               </label>
             </div>
           </fieldset>

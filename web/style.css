@@ -131,7 +131,8 @@ body[data-has-bg]::before {
 }
 
 .app {
-  max-width: 1100px;
+  /* Full width by default so tiles can use the whole screen. A page can opt
+     into a narrower canvas via its grid.maxWidth option (applied inline). */
   margin: 0 auto;
   padding: 24px 16px 64px;
 }
