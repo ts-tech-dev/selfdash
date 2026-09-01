@@ -1483,23 +1483,22 @@ body[data-has-bg]::before {
 
 /* Compose scan panel */
 
+/* A plain page section, not a floating card — same footprint and feel as the
+   tile groups above it (transparent, section-heading + a thin rule). */
 .compose-panel {
-  margin: 24px auto 0;
-  max-width: 1100px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px 20px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  margin: 22px 0 0;
+  padding: 0;
 }
 
 .compose-panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 16px;
+  gap: 8px 16px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 2px 6px;
+  margin-bottom: 12px;
 }
 
 .compose-panel-title {
@@ -1511,7 +1510,11 @@ body[data-has-bg]::before {
 
 .compose-panel-title h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
 }
 
 .compose-panel-sub {
@@ -1531,7 +1534,7 @@ body[data-has-bg]::before {
   font-size: 0.7rem;
   padding: 2px 7px;
   border-radius: 5px;
-  background: var(--bg);
+  background: transparent;
   border: 1px solid var(--border);
   max-width: 42vw;
   overflow: hidden;
@@ -1546,7 +1549,7 @@ body[data-has-bg]::before {
 .compose-rescan {
   font: inherit;
   font-size: 0.72rem;
-  background: var(--bg);
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
@@ -1577,11 +1580,9 @@ body[data-has-bg]::before {
   gap: 10px;
   align-items: baseline;
   flex-wrap: wrap;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  padding: 2px 2px 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
 }
 
 .compose-hostports-label {
@@ -1594,30 +1595,31 @@ body[data-has-bg]::before {
   padding-top: 2px;
 }
 
-/* stack cards */
+/* stack list — flat rows split by a hairline, no nested cards */
 
 .compose-stacks {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .compose-stack {
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--bg);
-  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.compose-stack:last-child {
+  border-bottom: none;
 }
 
 .compose-stack > summary {
   cursor: pointer;
-  padding: 9px 14px;
+  padding: 9px 2px;
   display: grid;
   grid-template-columns: 12px auto 1fr;
   align-items: center;
   column-gap: 9px;
   row-gap: 3px;
   list-style: none;
+  border-radius: 6px;
   transition: background 0.12s ease;
 }
 
@@ -1674,8 +1676,7 @@ body[data-has-bg]::before {
 .compose-stack-body {
   display: flex;
   flex-direction: column;
-  padding: 2px 14px 12px;
-  border-top: 1px solid var(--border);
+  padding: 4px 2px 14px 21px;
 }
 
 .compose-service {
@@ -1800,29 +1801,19 @@ body[data-has-bg]::before {
   flex-shrink: 0;
 }
 
+/* Published host ports get a faint accent wash — the page's one colour — so they
+   still stand out from internal/expose entries. Everything else stays neutral so
+   the section reads as monochrome like the rest of the dashboard; the meaning is
+   carried by the text (source → target, the ro/udp/internal suffixes, the dashed
+   border on expose) rather than a per-type hue. */
 .chip-port {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
-}
-
-.chip-udp {
-  border-color: color-mix(in srgb, #a78bfa 55%, var(--border));
-  background: color-mix(in srgb, #a78bfa 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
 }
 
 .chip-expose {
   border-style: dashed;
   color: var(--text-dim);
-}
-
-.chip-vol-bind {
-  border-color: color-mix(in srgb, #f59e0b 45%, var(--border));
-  background: color-mix(in srgb, #f59e0b 9%, var(--surface));
-}
-
-.chip-vol-volume {
-  border-color: color-mix(in srgb, #34d399 40%, var(--border));
-  background: color-mix(in srgb, #34d399 8%, var(--surface));
 }
 
 /* parse errors */

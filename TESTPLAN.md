@@ -356,6 +356,12 @@ Run after frontend changes or before a release. ~5 minutes.
     smallest (1×1) size → text isn't clipped: weather keeps icon + temp + one
     line, the calendar grid fills the tile with day tint/dots instead of event
     titles. Resize larger → detail comes back.
+11. **Compose panel:** with a compose dir configured, the "Ports & volumes"
+    section reads as part of the page — no wrapping card/shadow, full width,
+    an uppercase section heading + hairline rule like a tile group. Stacks are
+    a flat divided list (not nested cards); only published host-port chips
+    carry a faint accent tint, everything else is neutral. Expand a stack →
+    per-service ports/volumes unchanged.
 12. **Backup:** export a zip; re-import it → app restarts, data intact.
 13. **Config:** export YAML, edit the site title, re-import → applied.
 14. **PWA:** install, go offline, reload → shell still loads.
