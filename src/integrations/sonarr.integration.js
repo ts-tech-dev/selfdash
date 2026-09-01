@@ -8,6 +8,7 @@ import {
   fetchArrHealth,
   fetchArrDiskspace,
   fetchArrHistory,
+  fetchArrCalendar,
   arrPoster,
 } from './_arrBase.js';
 import { viewField, resolveViews, runViews } from './_views.js';
@@ -18,6 +19,7 @@ const VIEWS = {
   queue: { label: 'Download queue', run: fetchQueue },
   stats: { label: 'Library stats', run: fetchLibraryStats },
   upcoming: { label: 'Upcoming releases', run: fetchUpcoming },
+  calendar: { label: 'Release calendar', run: fetchCalendar },
   history: { label: 'Recently imported', run: fetchHistory },
   health: { label: 'Health', run: (ctx) => fetchArrHealth(ctx) },
   disk: { label: 'Disk space', run: (ctx) => fetchArrDiskspace(ctx) },
@@ -103,6 +105,23 @@ async function fetchUpcoming({ config, http }) {
       };
     }),
   };
+}
+
+function fetchCalendar({ config, http }) {
+  return fetchArrCalendar({
+    config,
+    http,
+    query: 'includeSeries=true',
+    mapEvent: (e) => {
+      const tag = episodeTag(e).trim();
+      const epName = e.title && e.title !== e.series?.title ? e.title : '';
+      return {
+        ts: airTimestamp(e),
+        title: e.series?.title || e.title || 'Unknown',
+        subtitle: [tag, epName].filter(Boolean).join(' · ') || undefined,
+      };
+    },
+  });
 }
 
 function fetchHistory({ config, http }) {

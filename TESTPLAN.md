@@ -131,7 +131,8 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | I12 | `DELETE` (204); repeat → 404; unschedules poller | ✅ `api/integrations` |
 | I13 | Config at rest: AES-256-GCM round-trip when `APP_SECRET` set; plaintext JSON when not | ✅ `unit/lib.crypto` · `unit/integrations.configCodec` |
 | I14 | Wrong key / tampered ciphertext fails closed | ✅ `unit/lib.crypto` |
-| I15 | Per-integration upstream parsing (sonarr calendar, qbit torrents, …) | ⏭️ needs live services; covered indirectly by I2 + view helpers |
+| I15 | Per-integration upstream parsing (qbit torrents, tautulli now-playing, …) | ⏭️ needs live services; covered indirectly by I2 + view helpers |
+| I16 | Sonarr/Radarr `calendar` view: maps upstream records to `{ts,title,subtitle}`, drops undated records, sorts ascending, picks the earliest of several release dates, honors `config.upcomingDays` for the window | ✅ `unit/integrations.arrCalendar` |
 
 ### 3.7 Tile data proxies (`src/routes/tileData.js`)
 | # | Case | Where |
@@ -319,6 +320,10 @@ Run after frontend changes or before a release. ~5 minutes.
    `document.title='x'` — both take effect.
 9. **Integrations:** add one (e.g. gluetun) with a bogus URL → shows an error
    status; edit the name without re-entering the password → still works.
+   Add a Sonarr or Radarr integration against a real instance, pick the
+   "Release calendar" view → month grid renders, today is highlighted, days
+   with releases show titles, hovering an event shows its subtitle in a
+   tooltip.
 10. **Backup:** export a zip; re-import it → app restarts, data intact.
 11. **Config:** export YAML, edit the site title, re-import → applied.
 12. **PWA:** install, go offline, reload → shell still loads.

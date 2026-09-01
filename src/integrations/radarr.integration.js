@@ -8,6 +8,7 @@ import {
   fetchArrHealth,
   fetchArrDiskspace,
   fetchArrHistory,
+  fetchArrCalendar,
   arrPoster,
 } from './_arrBase.js';
 import { viewField, resolveViews, runViews } from './_views.js';
@@ -18,6 +19,7 @@ const VIEWS = {
   queue: { label: 'Download queue', run: fetchQueue },
   stats: { label: 'Library stats', run: fetchLibraryStats },
   upcoming: { label: 'Upcoming releases', run: fetchUpcoming },
+  calendar: { label: 'Release calendar', run: fetchCalendar },
   history: { label: 'Recently imported', run: fetchHistory },
   health: { label: 'Health', run: (ctx) => fetchArrHealth(ctx) },
   disk: { label: 'Disk space', run: (ctx) => fetchArrDiskspace(ctx) },
@@ -98,6 +100,14 @@ async function fetchUpcoming({ config, http }) {
   };
 }
 
+function fetchCalendar({ config, http }) {
+  return fetchArrCalendar({
+    config,
+    http,
+    mapEvent: (m) => ({ ts: earliestReleaseTimestamp(m), title: m.title, subtitle: releaseKind(m) }),
+  });
+}
+
 function fetchHistory({ config, http }) {
   return fetchArrHistory({
     config,
@@ -117,4 +127,15 @@ function earliestReleaseTimestamp(movie) {
     .filter(Boolean)
     .map((d) => new Date(d).getTime());
   return dates.length ? Math.min(...dates) : Infinity;
+}
+
+// Which of the three release dates the calendar is actually plotting, so the tile can
+// say "Digital" / "Cinemas" / "Physical" instead of just a bare date.
+function releaseKind(movie) {
+  const ts = earliestReleaseTimestamp(movie);
+  if (!Number.isFinite(ts)) return undefined;
+  if (movie.inCinemas && new Date(movie.inCinemas).getTime() === ts) return 'Cinemas';
+  if (movie.digitalRelease && new Date(movie.digitalRelease).getTime() === ts) return 'Digital';
+  if (movie.physicalRelease && new Date(movie.physicalRelease).getTime() === ts) return 'Physical';
+  return undefined;
 }

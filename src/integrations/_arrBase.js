@@ -136,6 +136,44 @@ export function arrQuality(record) {
   return record.quality?.quality?.name || undefined;
 }
 
+// Release calendar for a month-grid visualization. Pulls /calendar over a window that
+// starts a little in the past (so "aired this week" is still visible) and runs
+// `config.upcomingDays` (default 35) ahead. `mapEvent(record)` returns
+// { ts, title, subtitle } — rows without a finite `ts` are dropped. The frontend buckets
+// by local day, so we only pass the instant, not a pre-formatted date.
+export async function fetchArrCalendar({
+  config,
+  http,
+  apiVersion = 'v3',
+  query = '',
+  mapEvent,
+  pastDays = 7,
+  defaultAheadDays = 35,
+}) {
+  const ahead = Number(config.upcomingDays) > 0 ? Number(config.upcomingDays) : defaultAheadDays;
+  const start = new Date(Date.now() - pastDays * 86400000);
+  const end = new Date(Date.now() + ahead * 86400000);
+  const isoDate = (d) => d.toISOString().slice(0, 10);
+
+  const rows = await arrGet(
+    config,
+    http,
+    `/api/${apiVersion}/calendar?start=${isoDate(start)}&end=${isoDate(end)}&unmonitored=false` +
+      `${query ? `&${query}` : ''}`
+  );
+  const list = Array.isArray(rows) ? rows : [];
+
+  const items = list
+    .map((r) => {
+      const ev = mapEvent(r);
+      return ev && Number.isFinite(ev.ts) ? { ts: ev.ts, title: ev.title, subtitle: ev.subtitle } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.ts - b.ts);
+
+  return { type: 'calendar', items };
+}
+
 // Poster URL from an *arr `images` array. Uses the CDN `remoteUrl` (TheTVDB for Sonarr,
 // TMDB for Radarr) so no API key rides along; TMDB "original" is downscaled for a thumb.
 export function arrPoster(images) {

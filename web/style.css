@@ -1184,6 +1184,113 @@ body[data-has-bg]::before {
   margin-bottom: 6px;
 }
 
+/* Calendar view (radarr/sonarr release calendar, and any future date-bucketed widget) */
+
+.widget-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.widget-cal-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.widget-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.widget-cal-dow {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+.widget-cal-cell {
+  min-height: 40px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  padding: 2px 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.widget-cal-empty {
+  visibility: hidden;
+}
+
+.widget-cal-has {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.widget-cal-today .widget-cal-daynum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+}
+
+.widget-cal-daynum {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-cal-events {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.widget-cal-event {
+  font-size: 0.6rem;
+  line-height: 1.25;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-cal-more {
+  font-size: 0.58rem;
+  color: var(--text-dim);
+}
+
+@media (max-width: 420px) {
+  .widget-cal-cell {
+    min-height: 30px;
+  }
+  .widget-cal-event {
+    display: none;
+  }
+  .widget-cal-has .widget-cal-daynum::after {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    margin-left: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+    vertical-align: middle;
+  }
+}
+
 /* Compose scan panel */
 
 .compose-panel {
