@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { tiles, addTile, editTile, removeTile, refreshTileHealth } from '../store.js';
+import { tiles, addTile, editTile, removeTile, refreshTileHealth, renameGroup, removeGroup } from '../store.js';
 import { occupancyOf, placeBox } from '../../src/shared/gridPack.js';
 import { TileCard } from './TileCard.jsx';
 import { TileModal } from './TileModal.jsx';
@@ -142,6 +142,34 @@ export function TileGrid({ page }) {
     });
   }
 
+  async function onRenameGroup(name) {
+    const next = window.prompt(`Rename group “${name}”`, name);
+    if (next == null) return;
+    const trimmed = next.trim().slice(0, 60);
+    if (!trimmed || trimmed === name) return;
+    // Carry the collapsed state over to the new name.
+    setCollapsed((prev) => {
+      if (!prev.has(name)) return prev;
+      const set = new Set(prev);
+      set.delete(name);
+      set.add(trimmed);
+      try {
+        localStorage.setItem(`selfdash:groups:${page.id}`, JSON.stringify([...set]));
+      } catch {
+        /* private mode */
+      }
+      return set;
+    });
+    await renameGroup(name, trimmed);
+  }
+
+  async function onDeleteGroup(name, count) {
+    if (!window.confirm(`Remove the “${name}” heading? Its ${count} tile${count === 1 ? '' : 's'} become ungrouped (nothing is deleted).`)) {
+      return;
+    }
+    await removeGroup(name);
+  }
+
   // Pixel size of one grid cell + gap, measured live so drag/resize snap correctly
   // regardless of viewport width or the page's column count.
   function cellMetrics() {
@@ -260,19 +288,29 @@ export function TileGrid({ page }) {
 
   function renderGroupHeader(name, count, isCollapsed, style) {
     return (
-      <button
+      <div
         key={`h:${name}`}
-        type="button"
         class="tile-group-header"
         data-group={name}
         data-collapsed={isCollapsed ? '' : undefined}
         style={style}
-        onClick={() => toggleGroup(name)}
       >
-        <span class="tile-group-caret">▾</span>
-        {name}
-        <span class="tile-group-count">{count}</span>
-      </button>
+        <button type="button" class="tile-group-toggle" onClick={() => toggleGroup(name)}>
+          <span class="tile-group-caret">▾</span>
+          {name}
+          <span class="tile-group-count">{count}</span>
+        </button>
+        {editing && (
+          <span class="tile-group-actions">
+            <button type="button" class="tile-group-act" title="Rename group" onClick={() => onRenameGroup(name)}>
+              ✎
+            </button>
+            <button type="button" class="tile-group-act" title="Remove group" onClick={() => onDeleteGroup(name, count)}>
+              ✕
+            </button>
+          </span>
+        )}
+      </div>
     );
   }
 

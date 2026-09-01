@@ -94,6 +94,25 @@ export async function removeTile(id) {
   await loadTiles(activePageId.value);
 }
 
+// Groups are just the distinct `config.group` strings across a page's tiles — there's
+// no group record — so renaming / removing a group means patching every tile in it.
+export async function renameGroup(oldName, newName) {
+  const next = String(newName || '').trim().slice(0, 60);
+  if (!next || next === oldName) return;
+  for (const t of tiles.value.filter((tl) => (tl.config?.group || '') === oldName)) {
+    await api.updateTile(t.id, { config: { ...t.config, group: next } });
+  }
+  await loadTiles(activePageId.value);
+}
+
+export async function removeGroup(name) {
+  for (const t of tiles.value.filter((tl) => (tl.config?.group || '') === name)) {
+    const { group: _drop, ...rest } = t.config || {};
+    await api.updateTile(t.id, { config: rest });
+  }
+  await loadTiles(activePageId.value);
+}
+
 export async function reorderTiles(orderedIds) {
   const byId = new Map(tiles.value.map((t) => [t.id, t]));
   tiles.value = orderedIds.map((id) => byId.get(id)).filter(Boolean);

@@ -83,6 +83,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T16 | 2-D packing: `occupancyOf` / `placeBox` / `nextFreeSlot` first-fit | ✅ `unit/shared.gridPack` |
 | T17 | Size presets ↔ `w×h` round-trip | ✅ `unit/shared.misc` |
 | T18 | Tile drag/resize UI, group collapse (localStorage), "Add tile" slot picker | 🖐️ §9 |
+| T18b | Group assignment is a radio picker (None / existing groups / "New group…"), not free text; edit-mode group headers rename (patches every member tile, collapse state migrates) and remove (members become ungrouped, none deleted) | 🖐️ §9.5b |
 | T19 | `widgetConfig`: dedupes/caps `views` (max 8); `moreIntegrationIds` drops self-refs, dangling ids, non-integers, dedupes, caps at 12, and is dropped entirely unless exactly one view is selected (server-enforced, not just the tile modal's UI) | ✅ `unit/shared.tileConfig` · `api/tiles` |
 | T20 | `mergeModels` ("Also include"): `queue`/`list` concatenate rows and tag each `subtitle` with its source (e.g. which download client); `calendar` merges + sorts by `ts` with a `source` tag; `stats`/`nowplaying`/unknown don't merge (→ null); missing / wrong-type sources are skipped | ✅ `unit/shared.mergeModels` |
 | T21 | "Also include" candidate list = integrations sharing the primary's `mergeGroup` **and** the picked view key — so a download-client queue merges qbittorrent + sabnzbd only, never radarr/sonarr | 🖐️ §9 (filter logic in `TileModal.jsx`; `mergeGroup` values covered by I1) |
@@ -318,6 +319,12 @@ Run after frontend changes or before a release. ~5 minutes.
    rss, calendar, bookmarks, customapi, resources); each renders a body.
 5. **Tile layout:** drag a tile to a new cell, resize it from the corner grip,
    collapse a named group, reload — layout persisted.
+5b. **Groups:** in a tile's "Group & appearance" section, the Group field is a
+   radio list — None, every group already on the page, and "New group…"
+   (name field appears only for that). Pick an existing one → tile moves under
+   it on save, no typing. In page edit mode, each group heading shows ✎/✕:
+   ✎ renames the group across all its tiles (collapse state follows the new
+   name); ✕ asks to confirm, then its tiles become ungrouped — none deleted.
 6. **Appearance:** change theme, dark mode, accent, font — applied live.
 7. **Background:** paste a URL → Save → full-page image appears behind tiles.
    Upload an image → Save → same. Set per-page background + blur/dim/opacity on

@@ -946,6 +946,23 @@ body[data-has-bg]::before {
   gap: 6px !important;
 }
 
+.tile-group-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tile-group-picker .radio-field {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px !important;
+  font-weight: 400;
+  text-transform: none;
+}
+.tile-group-picker .tile-group-new-input {
+  margin: 2px 0 0 22px;
+  width: calc(100% - 22px);
+}
+
 .multiselect-field {
   display: flex;
   flex-direction: column;
@@ -2320,30 +2337,57 @@ body[data-has-bg]::before {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 2px 6px;
+}
+.tile-group-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
   gap: 8px;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--border);
   color: var(--text-dim);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 10px 2px 6px;
+  padding: 0;
   text-align: left;
 }
-.tile-group-header:hover { color: var(--text); }
-.tile-group-header .tile-group-caret {
+.tile-group-toggle:hover { color: var(--text); }
+.tile-group-toggle .tile-group-caret {
   font-size: 0.7rem;
   transition: transform 0.15s ease;
 }
 .tile-group-header[data-collapsed] .tile-group-caret { transform: rotate(-90deg); }
-.tile-group-header .tile-group-count {
+.tile-group-toggle .tile-group-count {
   margin-left: auto;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
+}
+.tile-group-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.tile-group-act {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.tile-group-act:hover {
+  color: var(--text);
+  background: var(--surface-2, rgba(127, 127, 127, 0.15));
 }
 
 /* --- Phase 3: settings/pages layout & icon picker --- */

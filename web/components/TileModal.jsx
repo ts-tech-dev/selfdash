@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { SIZE_PRESETS, sizeKeyFromWH } from '../../src/shared/tileSizes.js';
 import { api } from '../api.js';
-import { integrations, availableIntegrations } from '../store.js';
+import { integrations, availableIntegrations, tiles } from '../store.js';
 import { DynamicConfigForm } from './DynamicConfigForm.jsx';
 import { IconPicker } from './IconPicker.jsx';
 import { TILE_REGISTRY, registryEntry } from '../tiles/registry.jsx';
@@ -51,6 +51,17 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
   }));
   const [uploading, setUploading] = useState(false);
   const [showAppearance, setShowAppearance] = useState(false);
+
+  // Distinct group names already in use on this page, first-seen order (matches the grid).
+  const existingGroups = [];
+  for (const t of tiles.value) {
+    const g = t.config?.group;
+    if (g && !existingGroups.includes(g)) existingGroups.push(g);
+  }
+  // "New group…" mode: on until the field holds a name that isn't already a group.
+  const [newGroup, setNewGroup] = useState(
+    Boolean(tile?.config?.group) && !existingGroups.includes(tile.config.group)
+  );
 
   const isPanel = Boolean(registryEntry(type));
   const isLink = type === 'link';
@@ -351,10 +362,57 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
         </button>
         {showAppearance && (
           <fieldset class="iframe-fields">
-            <label>
-              Group (tiles with the same group are shown under one heading)
-              <input value={form.group} onInput={(e) => update('group', e.target.value)} />
-            </label>
+            <div class="tile-group-picker">
+              <span class="tile-config-repeat-label">Group</span>
+              <p class="field-hint">Tiles in the same group share a heading. Rename or remove a group from its heading while editing the page.</p>
+              <label class="radio-field">
+                <input
+                  type="radio"
+                  name="tile-group"
+                  checked={!newGroup && !form.group}
+                  onChange={() => {
+                    setNewGroup(false);
+                    update('group', '');
+                  }}
+                />
+                None
+              </label>
+              {existingGroups.map((g) => (
+                <label class="radio-field" key={g}>
+                  <input
+                    type="radio"
+                    name="tile-group"
+                    checked={!newGroup && form.group === g}
+                    onChange={() => {
+                      setNewGroup(false);
+                      update('group', g);
+                    }}
+                  />
+                  {g}
+                </label>
+              ))}
+              <label class="radio-field">
+                <input
+                  type="radio"
+                  name="tile-group"
+                  checked={newGroup}
+                  onChange={() => {
+                    setNewGroup(true);
+                    update('group', '');
+                  }}
+                />
+                New group…
+              </label>
+              {newGroup && (
+                <input
+                  class="tile-group-new-input"
+                  autofocus
+                  placeholder="Group name"
+                  value={form.group}
+                  onInput={(e) => update('group', e.target.value)}
+                />
+              )}
+            </div>
             <div class="settings-form-row">
               <label>
                 Accent
