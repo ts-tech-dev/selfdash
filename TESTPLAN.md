@@ -389,7 +389,11 @@ Run after frontend changes or before a release. ~5 minutes.
     titles. Resize larger → detail comes back. Also check a **stats** view
     (e.g. Radarr/Sonarr's library counts) with 4+ values at S/M size — they
     stay on one row (shrinking together, smaller type) instead of wrapping to
-    a second line.
+    a second line. Specifically on a **link tile with an attached integration**
+    (icon/title header + widget body in one card) at the shortest height, a
+    `stats` or `nowplaying` view fits with no vertical scrollbar — the extra
+    header eats more of the row than a plain widget tile's toolbar does, so
+    this is the case most likely to clip if the height-based shrink regresses.
 11. **Compose panel:** with a compose dir configured, the "Ports & volumes"
     panel is one surface matching the tiles (same border/radius/shadow; frosts
     on the glass/gradient themes), full width so it lines up with the grid.

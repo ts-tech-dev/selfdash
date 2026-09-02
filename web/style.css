@@ -515,12 +515,15 @@ body[data-has-bg]::before {
 
 @container tile (max-height: 130px) {
   .tile-link-header {
-    padding: 6px 10px 5px;
-    gap: 2px;
+    padding: 5px 10px 4px;
+    gap: 1px;
   }
   .tile-link-header .tile-icon {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+  }
+  .tile-link-header .tile-title {
+    font-size: 0.72rem;
   }
 }
 
@@ -1084,7 +1087,7 @@ body[data-has-bg]::before {
 
 @container tile (max-height: 130px) {
   .widget-body {
-    padding: 7px 9px;
+    padding: 5px 9px;
   }
 }
 
@@ -1156,6 +1159,18 @@ body[data-has-bg]::before {
   .widget-stat-label { font-size: 0.58rem; }
 }
 
+/* Short tiles (the 1×1 row height) need the same step-down on the *height* axis —
+   a combined link+integration tile's icon/title header above .widget-body (see
+   .tile-link-header) leaves noticeably less vertical room here than a plain widget
+   tile's single-line toolbar does, so without this the value/label pair alone was
+   just tall enough to force .widget-body to scroll even though it's one row of
+   content. */
+@container tile (max-height: 130px) {
+  .widget-stats { gap: 4px; }
+  .widget-stat-value { font-size: 1rem; }
+  .widget-stat-label { font-size: 0.62rem; }
+}
+
 .widget-nowplaying {
   display: flex;
   gap: 10px;
@@ -1183,6 +1198,13 @@ body[data-has-bg]::before {
 .widget-nowplaying-subtitle {
   font-size: 0.75rem;
   color: var(--text-dim);
+}
+
+@container tile (max-height: 130px) {
+  .widget-nowplaying { gap: 7px; }
+  .widget-nowplaying-art { width: 32px; height: 32px; }
+  .widget-nowplaying-title { font-size: 0.76rem; }
+  .widget-nowplaying-subtitle { font-size: 0.66rem; }
 }
 
 .widget-progress {
