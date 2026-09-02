@@ -121,12 +121,34 @@ export function TileCard({
   }
 
   if (tile.type === 'widget') {
+    // A widget tile can optionally also carry a url/icon (set in the tile modal), so
+    // its title doubles as a link to the underlying service alongside the live data.
+    const widgetTarget = tile.open_mode === 'newtab' ? '_blank' : undefined;
+    const widgetTitle = (
+      <>
+        {tile.icon && <img class="tile-toolbar-icon" src={resolveIcon(tile.icon)} alt="" />}
+        <span class="tile-toolbar-title">{tile.title || 'Widget'}</span>
+      </>
+    );
     return (
       <div {...rootProps}>
         <HealthDot {...widgetHealth(tile)} />
         <div class="tile-toolbar">
           {dragMark}
-          {!hideTitle && <span class="tile-toolbar-title">{tile.title || 'Widget'}</span>}
+          {!hideTitle &&
+            (tile.url ? (
+              <a
+                class="tile-toolbar-link"
+                href={tile.url}
+                target={widgetTarget}
+                rel={widgetTarget ? 'noopener noreferrer' : undefined}
+                onClick={editing ? (e) => e.preventDefault() : undefined}
+              >
+                {widgetTitle}
+              </a>
+            ) : (
+              widgetTitle
+            ))}
           {editButton && <div class="tile-toolbar-actions">{editButton}</div>}
         </div>
         <WidgetTile tile={tile} />

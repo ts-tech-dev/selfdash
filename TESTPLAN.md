@@ -92,6 +92,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T24 | `themes.js` `THEMES` list (8 built-ins incl. `dracula`, `oled`) is the single source for the settings route, page-options sanitiser, and settings UI | ✅ `api/settings` (accepts `dracula`/`oled`, rejects unknown) |
 | T25 | `color.js` `isHexColor` (only `#rrggbb`, any case; rejects shorthand/names/rgb()/non-string) + `dimmedTextColor` — the one hex check reused by `tileConfig`, `pageOptions`, the settings route, and the appearance UI | ✅ `unit/shared.color` |
 | T26 | `composePorts.js` `uniqueHostPorts` — de-dupe + numeric sort + protocol-normalise of published host ports, shared by the panel-wide strip and each stack's summary chips | ✅ `unit/shared.composePorts` |
+| T27 | `widget` tile's `url`/`icon`/`open_mode` are optional (combined widget+link tile): accepted and round-tripped when given, `url` still validated as `http(s)`, `open_mode: iframe` falls back to `newtab` (a widget's body is already spoken for) | ✅ `api/tiles` |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
@@ -205,6 +206,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | G7 | `${ENV}` resolution + `unresolvedSecrets` reporting on import | 🖐️ (add ✅ when touched) |
 | G8 | Multipart `.yaml` upload path (vs raw body) | 🖐️ |
 | G9 | A widget tile's `config.moreIntegrationIds` exports as portable integration `ref` strings (not raw db ids) and resolves back to the *new*, re-imported integration's id on import | ✅ `api/config` |
+| G10 | A widget tile's optional `url`/`icon`/`open_mode` (combined widget+link tile) export and re-import unchanged | ✅ `api/config` |
 
 ### 3.12 Persistence / schema (`src/db/`)
 | # | Case | Where |

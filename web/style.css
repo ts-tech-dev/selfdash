@@ -310,7 +310,8 @@ body[data-has-bg]::before {
   user-select: none;
 }
 .tile-movable .tile-link,
-.tile-movable .tile-toolbar-title {
+.tile-movable .tile-toolbar-title,
+.tile-movable .tile-toolbar-link {
   cursor: move;
 }
 .tile-dragging {
@@ -423,6 +424,28 @@ body[data-has-bg]::before {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Widget tile whose title also links out to the underlying service (config.url). */
+.tile-toolbar-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.tile-toolbar-link:hover .tile-toolbar-title {
+  text-decoration: underline;
+}
+
+.tile-toolbar-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .tile-toolbar-actions {
