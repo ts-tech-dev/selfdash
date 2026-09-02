@@ -327,6 +327,10 @@ Run after frontend changes or before a release. ~5 minutes.
 
 1. `npm run build && npm start`, open `http://localhost:3000`.
 2. **Shell:** dashboard loads, site title in the header, no console errors.
+   Any scrolling surface (a scrolled widget body, the settings page, a tile
+   modal) shows the slim theme-tinted scrollbar, not the browser's default —
+   check on a couple of themes, including a glass/gradient one, since the
+   thumb color derives from `--text-dim`.
 3. **Pages:** add a page, rename it, drag tabs to reorder, delete it.
 4. **Tiles:** add one of each type (link, iframe, clock, weather, notes, search,
    rss, calendar, bookmarks, customapi, resources); each renders a body. In the
