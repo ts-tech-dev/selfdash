@@ -69,6 +69,12 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
   const isLink = type === 'link';
   const isWidget = type === 'widget';
 
+  // A link tile can optionally also show an attached integration's live data below
+  // the icon/title — same integration-picking UI as a widget tile, just optional here.
+  const [includeIntegration, setIncludeIntegration] = useState(
+    Boolean(startType === 'link' && tile?.integration_id)
+  );
+
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
@@ -153,6 +159,13 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     }
 
     if (!form.url.trim()) return;
+    const widgetCfg = {};
+    if (includeIntegration && form.integration_id) {
+      if (form.views.length) widgetCfg.views = form.views;
+      if (form.views.length === 1 && form.moreIntegrationIds.length) {
+        widgetCfg.moreIntegrationIds = form.moreIntegrationIds;
+      }
+    }
     onSave({
       type: 'link',
       title,
@@ -160,9 +173,13 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
       icon: form.icon.trim() || null,
       description: form.description.trim() || null,
       open_mode: form.open_mode,
+      integration_id: includeIntegration && form.integration_id ? Number(form.integration_id) : null,
       w,
       h,
-      config: form.open_mode === 'iframe' ? { ...form.iframe, ...commonConfig() } : commonConfig(),
+      config:
+        form.open_mode === 'iframe'
+          ? { ...form.iframe, ...commonConfig() }
+          : { ...widgetCfg, ...commonConfig() },
     });
   }
 
@@ -296,6 +313,74 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
               Description
               <input value={form.description} onInput={(e) => update('description', e.target.value)} />
             </label>
+
+            <label class="checkbox-field">
+              <input
+                type="checkbox"
+                checked={includeIntegration}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setIncludeIntegration(checked);
+                  if (checked) {
+                    if (!form.integration_id) pickIntegration(integrations.value[0]?.id || '');
+                    // The integration data fills the tile body once this is on — no room
+                    // left for an iframe embed of the link itself.
+                    if (form.open_mode === 'iframe') update('open_mode', 'newtab');
+                  }
+                }}
+              />
+              Include integration data
+            </label>
+
+            {includeIntegration && (
+              <div class="tile-config-repeat">
+                <label>
+                  Integration
+                  <select value={form.integration_id} onChange={(e) => pickIntegration(e.target.value)}>
+                    {integrations.value.length === 0 && <option value="">No integrations configured</option>}
+                    {integrations.value.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {viewKeys.length > 0 && (
+                  <div class="multiselect-field">
+                    <span class="multiselect-label">Show</span>
+                    {viewKeys.map((k) => (
+                      <label key={k} class="checkbox-field">
+                        <input type="checkbox" checked={form.views.includes(k)} onChange={() => toggleView(k)} />
+                        {viewCatalog[k]}
+                      </label>
+                    ))}
+                    <p class="field-hint">
+                      Nothing checked uses the first view. Check several to stack them in one tile.
+                    </p>
+                  </div>
+                )}
+
+                {singleViewKey && mergeCandidates.length > 0 && (
+                  <div class="multiselect-field">
+                    <span class="multiselect-label">Also include</span>
+                    {mergeCandidates.map((i) => (
+                      <label key={i.id} class="checkbox-field">
+                        <input
+                          type="checkbox"
+                          checked={form.moreIntegrationIds.includes(i.id)}
+                          onChange={() => toggleMergeIntegration(i.id)}
+                        />
+                        {i.name}
+                      </label>
+                    ))}
+                    <p class="field-hint">
+                      Merges {(viewCatalog[singleViewKey] || '').toLowerCase()} from these into the same tile.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
 
@@ -316,12 +401,12 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
             <select value={form.open_mode} onChange={(e) => update('open_mode', e.target.value)}>
               <option value="newtab">New tab</option>
               <option value="same">Same tab</option>
-              <option value="iframe">Embed as iframe</option>
+              {!includeIntegration && <option value="iframe">Embed as iframe</option>}
             </select>
           </label>
         )}
 
-        {isLink && form.open_mode === 'iframe' && (
+        {isLink && !includeIntegration && form.open_mode === 'iframe' && (
           <fieldset class="iframe-fields">
             <label>
               Sizing

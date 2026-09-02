@@ -135,6 +135,32 @@ export function TileCard({
     );
   }
 
+  // A link tile with an attached integration (config.integration_id, set via the tile
+  // modal's "Include integration data") — icon/title stay a clickable link to the
+  // service, with the integration's live data rendered below it in the same tile.
+  if (tile.integration_id) {
+    const target = tile.open_mode === 'newtab' ? '_blank' : undefined;
+    return (
+      <div {...rootProps}>
+        <HealthDot {...widgetHealth(tile)} />
+        {dragMark}
+        <a
+          class="tile-link-header"
+          href={tile.url || '#'}
+          target={target}
+          rel={target ? 'noopener noreferrer' : undefined}
+          onClick={editing ? (e) => e.preventDefault() : undefined}
+        >
+          {tile.icon && <img class="tile-icon" src={resolveIcon(tile.icon)} alt="" />}
+          {!hideTitle && <span class="tile-title">{tile.title || tile.url}</span>}
+        </a>
+        <WidgetTile tile={tile} />
+        {editButton && <div class="tile-actions">{editButton}</div>}
+        {resizeHandle}
+      </div>
+    );
+  }
+
   if (tile.open_mode === 'iframe') {
     const cfg = tile.config || {};
     const iframeStyle =

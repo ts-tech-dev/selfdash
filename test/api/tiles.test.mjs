@@ -77,6 +77,47 @@ describe('tiles API', () => {
     assert.equal(r.body.config.moreIntegrationIds, undefined);
   });
 
+  it('link tile can optionally attach an integration (combined link+widget tile)', async () => {
+    const a = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'Link+Integ', config: { url: 'http://a:1' } } })).body;
+    const r = await create({
+      type: 'link',
+      url: 'https://radarr.local',
+      icon: 'di:radarr',
+      integration_id: a.id,
+      config: { views: ['status'] },
+    });
+    assert.equal(r.status, 201);
+    assert.equal(r.body.integration_id, a.id);
+    assert.equal(r.body.url, 'https://radarr.local');
+    assert.deepEqual(r.body.config.views, ['status']);
+  });
+
+  it('link tile integration_id is optional, validated when given, and can be cleared', async () => {
+    const noInteg = await create({ type: 'link', url: 'https://x.y' });
+    assert.equal(noInteg.status, 201);
+    assert.equal(noInteg.body.integration_id, null);
+
+    const bad = await create({ type: 'link', url: 'https://x.y', integration_id: 424242 });
+    assert.equal(bad.status, 400);
+
+    const a = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'Clearable', config: { url: 'http://b:1' } } })).body;
+    const withInteg = await create({ type: 'link', url: 'https://x.y', integration_id: a.id });
+    assert.equal(withInteg.body.integration_id, a.id);
+
+    const cleared = await s.request(`/api/tiles/${withInteg.body.id}`, {
+      method: 'PATCH',
+      body: { integration_id: null },
+    });
+    assert.equal(cleared.body.integration_id, null);
+  });
+
+  it('a link tile with an attached integration forces open_mode away from iframe', async () => {
+    const a = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'NoIframe', config: { url: 'http://c:1' } } })).body;
+    const r = await create({ type: 'link', url: 'https://x.y', integration_id: a.id, open_mode: 'iframe' });
+    assert.equal(r.status, 201);
+    assert.equal(r.body.open_mode, 'newtab');
+  });
+
   it('unknown type falls back to link (and then needs a url)', async () => {
     const r = await create({ type: 'wormhole', url: 'https://x.y' });
     assert.equal(r.status, 201);

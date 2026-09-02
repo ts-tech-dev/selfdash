@@ -92,6 +92,8 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T24 | `themes.js` `THEMES` list (8 built-ins incl. `dracula`, `oled`) is the single source for the settings route, page-options sanitiser, and settings UI | ✅ `api/settings` (accepts `dracula`/`oled`, rejects unknown) |
 | T25 | `color.js` `isHexColor` (only `#rrggbb`, any case; rejects shorthand/names/rgb()/non-string) + `dimmedTextColor` — the one hex check reused by `tileConfig`, `pageOptions`, the settings route, and the appearance UI | ✅ `unit/shared.color` |
 | T26 | `composePorts.js` `uniqueHostPorts` — de-dupe + numeric sort + protocol-normalise of published host ports, shared by the panel-wide strip and each stack's summary chips | ✅ `unit/shared.composePorts` |
+| T27 | A `link` tile can optionally attach an integration ("Include integration data" in the tile modal), carrying the same `config.views`/`moreIntegrationIds` a widget tile does; `integration_id` is validated when given (400 on a dangling id) and clearable via `PATCH` | ✅ `api/tiles` |
+| T28 | A `link` tile with an attached integration can't also be `open_mode: iframe` — forced back to `newtab` (the integration data fills the tile body, no room for an embed) | ✅ `api/tiles` |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
@@ -205,6 +207,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | G7 | `${ENV}` resolution + `unresolvedSecrets` reporting on import | 🖐️ (add ✅ when touched) |
 | G8 | Multipart `.yaml` upload path (vs raw body) | 🖐️ |
 | G9 | A widget tile's `config.moreIntegrationIds` exports as portable integration `ref` strings (not raw db ids) and resolves back to the *new*, re-imported integration's id on import | ✅ `api/config` |
+| G10 | A link tile's optional attached integration exports/imports the same way a widget tile's does (portable ref, resolved to the new id); a dangling/unknown ref on a link tile is dropped rather than failing the whole import (optional, unlike a widget tile's required one) | ✅ `api/config` |
 
 ### 3.12 Persistence / schema (`src/db/`)
 | # | Case | Where |

@@ -310,7 +310,8 @@ body[data-has-bg]::before {
   user-select: none;
 }
 .tile-movable .tile-link,
-.tile-movable .tile-toolbar-title {
+.tile-movable .tile-toolbar-title,
+.tile-movable .tile-link-header {
   cursor: move;
 }
 .tile-dragging {
@@ -485,6 +486,42 @@ body[data-has-bg]::before {
 .tile-desc {
   font-size: 0.75rem;
   color: var(--text-dim);
+}
+
+/* Link tile with an attached integration: compact icon-over-title header (unlike
+   .tile-link, not flex:1 — the integration's live data fills the rest of the tile
+   below it via .widget-body). */
+.tile-link-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 12px 8px;
+  text-decoration: none;
+  color: var(--text);
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.tile-link-header .tile-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.tile-link-header .tile-title {
+  font-size: 0.82rem;
+}
+
+@container tile (max-height: 130px) {
+  .tile-link-header {
+    padding: 6px 10px 5px;
+    gap: 2px;
+  }
+  .tile-link-header .tile-icon {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 .tile-actions {

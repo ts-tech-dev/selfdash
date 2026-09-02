@@ -246,7 +246,27 @@ export function resolveTileFields(db, type, body, existing) {
   }
   if (!url) throw new Error('url is required and must start with http:// or https://');
 
-  const open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : existing?.open_mode || 'newtab';
-  const config = open_mode === 'iframe' ? { ...buildIframeConfig(rawConfig), ...common } : common;
-  return { url, open_mode, integration_id: null, config };
+  // A link tile can optionally also carry an attached integration, whose live data
+  // renders below the icon/title (see widgetConfig for the views/moreIntegrationIds
+  // it can carry) — unlike a widget tile's integration, this one is optional.
+  let integrationId = existing ? existing.integration_id : null;
+  if (body.integration_id !== undefined) {
+    integrationId = body.integration_id ? Number(body.integration_id) : null;
+    if (integrationId) {
+      const integration = db.prepare('SELECT id FROM integrations WHERE id = ?').get(integrationId);
+      if (!integration) throw new Error('integration_id must reference an existing integration');
+    }
+  }
+
+  let open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : existing?.open_mode || 'newtab';
+  // An attached integration renders its data in the tile body — no room left for an
+  // iframe embed of the link itself, so fall back to a normal newtab link.
+  if (integrationId && open_mode === 'iframe') open_mode = 'newtab';
+
+  const config =
+    open_mode === 'iframe'
+      ? { ...buildIframeConfig(rawConfig), ...common }
+      : { ...(integrationId ? widgetConfig(db, rawConfig, integrationId) : {}), ...common };
+
+  return { url, open_mode, integration_id: integrationId, config };
 }

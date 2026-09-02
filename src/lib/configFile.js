@@ -92,17 +92,16 @@ export function buildConfigDoc(db, crypto, registry) {
           if (t.y) out.y = t.y;
           out.w = t.w;
           out.h = t.h;
-          if (t.type === 'widget') {
-            if (refById.has(t.integration_id)) out.integration = refById.get(t.integration_id);
-            // moreIntegrationIds is a list of *this database's* integration row ids —
-            // meaningless after a re-import elsewhere, so translate to the same portable
-            // "ref" strings used for the primary integration.
-            if (Array.isArray(cfg.moreIntegrationIds)) {
-              const refs = cfg.moreIntegrationIds.map((id) => refById.get(id)).filter(Boolean);
-              if (refs.length) cfg.moreIntegrationIds = refs;
-              else delete cfg.moreIntegrationIds;
-            }
-          } else {
+          // A tile's attached integration (required for `widget`, optional for `link`)
+          // exports as a portable ref, same as moreIntegrationIds — both are lists of
+          // *this database's* row ids, meaningless after a re-import elsewhere.
+          if (refById.has(t.integration_id)) out.integration = refById.get(t.integration_id);
+          if (Array.isArray(cfg.moreIntegrationIds)) {
+            const refs = cfg.moreIntegrationIds.map((id) => refById.get(id)).filter(Boolean);
+            if (refs.length) cfg.moreIntegrationIds = refs;
+            else delete cfg.moreIntegrationIds;
+          }
+          if (t.type !== 'widget') {
             if (t.url) out.url = t.url;
             if (t.icon) out.icon = t.icon;
             if (t.description) out.description = t.description;
@@ -214,21 +213,25 @@ export function importConfigDoc(app, doc, { includeSettings = true } = {}) {
           url: t.url,
           open_mode: t.open_mode,
         };
-        if (type === 'widget') {
-          if (!refToId.has(t.integration)) {
+        if (type === 'widget' || t.integration) {
+          // A widget tile always needs its integration to resolve; a link tile's is
+          // optional, so a dangling/unknown ref there is dropped rather than failing
+          // the whole import.
+          if (refToId.has(t.integration)) {
+            body.integration_id = refToId.get(t.integration);
+          } else if (type === 'widget') {
             throw new Error(`tile on page "${p.name}" references unknown integration "${t.integration}"`);
           }
-          body.integration_id = refToId.get(t.integration);
-          // Reverse of the export-side translation: moreIntegrationIds travels as ref
-          // strings in the doc, resolve them to this import's freshly-assigned ids.
-          if (body.config && Array.isArray(body.config.moreIntegrationIds)) {
-            body.config = {
-              ...body.config,
-              moreIntegrationIds: body.config.moreIntegrationIds
-                .map((ref) => refToId.get(ref))
-                .filter((id) => id !== undefined),
-            };
-          }
+        }
+        // Reverse of the export-side translation: moreIntegrationIds travels as ref
+        // strings in the doc, resolve them to this import's freshly-assigned ids.
+        if (body.integration_id && body.config && Array.isArray(body.config.moreIntegrationIds)) {
+          body.config = {
+            ...body.config,
+            moreIntegrationIds: body.config.moreIntegrationIds
+              .map((ref) => refToId.get(ref))
+              .filter((id) => id !== undefined),
+          };
         }
         const f = resolveTileFields(db, type, body, null);
         insTile.run(

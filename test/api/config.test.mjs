@@ -108,6 +108,40 @@ describe('config export / import (YAML)', () => {
     assert.deepEqual(widgetAfter.config.moreIntegrationIds, [newExtra.id]);
   });
 
+  it("export/import round-trips a link tile's optional attached integration (combined link+integration tile)", async () => {
+    const page = (await s.request('/api/pages')).body[0];
+    const integ = (
+      await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'Linked Link', config: { url: 'http://g:1' } } })
+    ).body;
+    await s.request(`/api/pages/${page.id}/tiles`, {
+      method: 'POST',
+      body: { type: 'link', url: 'https://radarr.local', icon: 'di:radarr', integration_id: integ.id, config: { views: ['status'] } },
+    });
+
+    const doc = parseYaml(await (await fetch(`${s.base}/api/config/export`)).text());
+    const tileDoc = doc.pages.flatMap((p) => p.tiles).find((t) => t.type === 'link' && t.integration);
+    assert.ok(tileDoc, 'exported doc has the link tile with its attached integration');
+    assert.equal(tileDoc.url, 'https://radarr.local');
+    assert.equal(typeof tileDoc.integration, 'string', 'exported as a portable ref, not a raw db id');
+    assert.deepEqual(tileDoc.config.views, ['status']);
+
+    const importRes = await fetch(`${s.base}/api/config/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/yaml' },
+      body: stringifyYaml(doc),
+    });
+    assert.equal(importRes.status, 200);
+
+    const integrationsAfter = (await s.request('/api/integrations')).body;
+    const newInteg = integrationsAfter.find((i) => i.name === 'Linked Link');
+    const pageAfter = (await s.request('/api/pages')).body[0];
+    const tilesAfter = (await s.request(`/api/pages/${pageAfter.id}/tiles`)).body;
+    const linkAfter = tilesAfter.find((t) => t.type === 'link' && t.integration_id === newInteg.id);
+    assert.ok(linkAfter, 'link tile survived the reimport, bound to the new integration id');
+    assert.equal(linkAfter.url, 'https://radarr.local');
+    assert.deepEqual(linkAfter.config.views, ['status']);
+  });
+
   it('POST /api/config/import?settings=0 leaves settings untouched', async () => {
     await s.request('/api/settings', { method: 'PATCH', body: { site_title: 'Keep Me' } });
     const yaml = 'version: 1\nsettings:\n  site_title: Should Not Apply\npages:\n  - name: Only\n    slug: only\n    tiles: []\n';
