@@ -513,6 +513,17 @@ body[data-has-bg]::before {
   font-size: 0.82rem;
 }
 
+/* Which other services feed this tile's merged view (config.moreIntegrationIds),
+   e.g. "qBittorrent + Sabnzbd" under a "Download queue" title. */
+.tile-link-header-sources {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @container tile (max-height: 130px) {
   .tile-link-header {
     padding: 5px 10px 4px;
@@ -524,6 +535,11 @@ body[data-has-bg]::before {
   }
   .tile-link-header .tile-title {
     font-size: 0.72rem;
+  }
+  /* No room for a third header line at the shortest tile height — the merged
+     service list is a nice-to-have, not worth reintroducing a scrollbar for. */
+  .tile-link-header-sources {
+    display: none;
   }
 }
 

@@ -101,12 +101,21 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     });
   }
   function toggleMergeIntegration(id) {
-    setForm((f) => ({
-      ...f,
-      moreIntegrationIds: f.moreIntegrationIds.includes(id)
+    setForm((f) => {
+      const wasEmpty = f.moreIntegrationIds.length === 0;
+      const moreIntegrationIds = f.moreIntegrationIds.includes(id)
         ? f.moreIntegrationIds.filter((x) => x !== id)
-        : [...f.moreIntegrationIds, id],
-    }));
+        : [...f.moreIntegrationIds, id];
+      // The first "Also include" pick turns this into a multi-service tile — default
+      // the title to the view's own label ("Download queue", …) when nothing's been
+      // typed yet, since a leftover single-service title (e.g. "qBittorrent") would be
+      // misleading once it's also showing Sabnzbd's queue.
+      const title =
+        !f.title.trim() && wasEmpty && moreIntegrationIds.length === 1 && singleViewKey
+          ? viewCatalog[singleViewKey] || f.title
+          : f.title;
+      return { ...f, moreIntegrationIds, title };
+    });
   }
 
   function onPickType(next) {

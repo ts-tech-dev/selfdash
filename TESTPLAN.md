@@ -375,7 +375,14 @@ Run after frontend changes or before a release. ~5 minutes.
    and "Also include" a SABnzbd integration → one queue with every item, each
    row labelled with its client. The "Also include" list must offer only other
    download clients here — Radarr/Sonarr (also have a `queue` view) must not
-   appear, since they're in a different `mergeGroup`. For "Release
+   appear, since they're in a different `mergeGroup`. The first "Also include"
+   check (on either a widget tile or a link tile with "Include integration
+   data") auto-fills a blank Title field with the view's own label ("Download
+   queue") — typing a title first, or already having one, must leave it alone.
+   On a **link tile** specifically, once merged, its header shows a second
+   line under the title naming the merged services ("qBittorrent + Sabnzbd") —
+   check that line disappears at the shortest (1×1) tile height rather than
+   forcing a scrollbar, and reappears once resized taller. For "Release
    calendar" specifically, events from every source merge into one grid and a
    day cell shows only the show/movie name (no source tag). Hover (or focus) a
    day with releases → a floating card lists each release that day with its

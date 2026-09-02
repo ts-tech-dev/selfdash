@@ -23,6 +23,21 @@ function widgetHealth(tile) {
   return { state: 'offline', label: `Offline — ${integ.last_error || integ.last_status}` };
 }
 
+// Combined link+integration tiles only: when config.moreIntegrationIds merges other
+// services into the primary's view (the modal's "Also include"), list which ones so
+// it's clear at a glance this one tile aggregates several — e.g. a "Download queue"
+// tile fed by both qBittorrent and Sabnzbd. Not shown at the shortest tile height
+// (see .tile-link-header-sources) — no room there for a third header line.
+function mergedServiceNames(tile) {
+  const extraIds = Array.isArray(tile.config?.moreIntegrationIds) ? tile.config.moreIntegrationIds : [];
+  if (!extraIds.length) return null;
+  const primary = tile.integration_id ? integrations.value.find((i) => i.id === tile.integration_id) : null;
+  const names = [primary, ...extraIds.map((id) => integrations.value.find((i) => i.id === id))]
+    .filter(Boolean)
+    .map((i) => i.name);
+  return names.length > 1 ? names.join(' + ') : null;
+}
+
 // Link / iframe tiles: reuse the /api/health/check ping result for the tile URL.
 function urlHealth(url) {
   const h = url ? tileHealth.value[url] : null;
@@ -140,6 +155,7 @@ export function TileCard({
   // service, with the integration's live data rendered below it in the same tile.
   if (tile.integration_id) {
     const target = tile.open_mode === 'newtab' ? '_blank' : undefined;
+    const sources = mergedServiceNames(tile);
     return (
       <div {...rootProps}>
         <HealthDot {...widgetHealth(tile)} />
@@ -153,6 +169,7 @@ export function TileCard({
         >
           {tile.icon && <img class="tile-icon" src={resolveIcon(tile.icon)} alt="" />}
           {!hideTitle && <span class="tile-title">{tile.title || tile.url}</span>}
+          {!hideTitle && sources && <span class="tile-link-header-sources">{sources}</span>}
         </a>
         <WidgetTile tile={tile} />
         {editButton && <div class="tile-actions">{editButton}</div>}
