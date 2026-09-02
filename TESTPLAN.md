@@ -163,6 +163,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | D9b | `fmtRate` uses adaptive units (B/s → KB/s → MB/s) so sub-MB/s throughput isn't flattened to "0.0 MB/s" | ✅ `unit/shared.misc` |
 | D10 | `getPath` supports `a.b`, `a[0].b`, `a.b[].c` wildcard | ✅ `unit/lib.apiMap` |
 | D11 | Feed/ICS parser edge cases: Atom alt links, CDATA/entities, ICS unfolding, all-day, horizon filter | ✅ `unit/lib.feedParse` |
+| D12 | `parseFeed` item thumbnail: tries `media:thumbnail` → `media:content[medium=image]` → an image-typed `enclosure` → `itunes:image` → falls back to the first `<img>` inside the item's `content`/`description` HTML when no structured image tag exists (e.g. The Verge's Atom feed); no image anywhere → `image: ''`, not a throw | ✅ `unit/lib.feedParse` |
 
 ### 3.8 Tile health (`src/routes/health.js`)
 | # | Case | Where |

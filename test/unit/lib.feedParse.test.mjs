@@ -28,6 +28,52 @@ test('parseFeed: junk input yields empty items, not a throw', () => {
   assert.deepEqual(parseFeed('not xml at all').items, []);
 });
 
+test('parseFeed: RSS items with no image tags at all get an empty image, not a throw', () => {
+  assert.equal(parseFeed(RSS_2_0).items[0].image, '');
+});
+
+test('parseFeed: image priority — media:thumbnail beats media:content, enclosure, itunes:image, and body <img>', () => {
+  const xml = `<rss version="2.0"><channel><item>
+    <title>All the image tags</title>
+    <link>https://example.com/1</link>
+    <media:thumbnail url="https://img.example.com/thumb.jpg"/>
+    <media:content url="https://img.example.com/media-content.jpg" medium="image"/>
+    <enclosure url="https://img.example.com/enclosure.jpg" type="image/jpeg"/>
+    <itunes:image href="https://img.example.com/itunes.jpg"/>
+    <description><![CDATA[<img src="https://img.example.com/body.jpg">]]></description>
+  </item></channel></rss>`;
+  assert.equal(parseFeed(xml).items[0].image, 'https://img.example.com/thumb.jpg');
+});
+
+test('parseFeed: falls back through media:content -> enclosure -> itunes:image -> body <img> as each is dropped', () => {
+  const withoutThumbnail = `<rss version="2.0"><channel><item>
+    <title>t</title><link>https://example.com/1</link>
+    <media:content url="https://img.example.com/media-content.jpg" medium="image"/>
+    <enclosure url="https://img.example.com/enclosure.jpg" type="image/jpeg"/>
+  </item></channel></rss>`;
+  assert.equal(parseFeed(withoutThumbnail).items[0].image, 'https://img.example.com/media-content.jpg');
+
+  const enclosureOnly = `<rss version="2.0"><channel><item>
+    <title>t</title><link>https://example.com/1</link>
+    <enclosure url="https://img.example.com/enclosure.jpg" type="image/jpeg"/>
+    <enclosure url="https://example.com/ep.mp3" type="audio/mpeg"/>
+  </item></channel></rss>`;
+  assert.equal(parseFeed(enclosureOnly).items[0].image, 'https://img.example.com/enclosure.jpg');
+});
+
+test('parseFeed: no structured image tag falls back to the first <img> in content/description — Atom feeds with an inline body image (e.g. The Verge) still get a thumbnail', () => {
+  const atomWithBodyImage = `<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>Atom Example</title>
+    <entry>
+      <title>Atom entry with only a body image</title>
+      <link rel="alternate" href="https://example.com/atom/1"/>
+      <updated>2025-02-01T18:30:02Z</updated>
+      <content type="html"><![CDATA[<figure><img src="https://img.example.com/article.jpg" alt=""></figure><p>Text</p><img src="https://img.example.com/second.jpg">]]></content>
+    </entry>
+  </feed>`;
+  assert.equal(parseFeed(atomWithBodyImage).items[0].image, 'https://img.example.com/article.jpg');
+});
+
 test('parseIcs: keeps events inside the horizon, sorted, and drops far-future ones', () => {
   const events = parseIcs(icsFixture(), { daysAhead: 30, limit: 10 });
   assert.equal(events.length, 1);

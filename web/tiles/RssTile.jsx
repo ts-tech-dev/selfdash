@@ -29,6 +29,7 @@ export function RssTile({ tile }) {
       <ul>
         {items.map((it, i) => (
           <li key={i}>
+            {it.image && <img class="tile-feed-thumb" src={it.image} alt="" loading="lazy" />}
             <a href={it.link} target="_blank" rel="noopener noreferrer">
               {it.title || '(untitled)'}
             </a>

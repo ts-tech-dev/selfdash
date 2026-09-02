@@ -28,6 +28,41 @@ function toIso(d) {
   return Number.isNaN(+t) ? null : t.toISOString();
 }
 
+function firstImgSrc(html) {
+  if (!html) return '';
+  const m = html.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
+  return m ? decode(m[1]) : '';
+}
+
+// Thumbnail for an item, tried in order: structured image tags (Media RSS,
+// image enclosures, podcast art) first, since those are deliberately chosen by
+// the feed; then a scrape for the first <img> in the item's HTML body, since
+// plenty of feeds (e.g. The Verge's) carry the image only there.
+function extractImage(block) {
+  let m = block.match(/<media:thumbnail\b[^>]*\burl=["']([^"']+)["']/i);
+  if (m) return decode(m[1]);
+
+  for (const t of block.match(/<media:content\b[^>]*\/?>/gi) || []) {
+    if (/\bmedium=["']image["']/i.test(t) || /\btype=["']image\//i.test(t)) {
+      const u = t.match(/\burl=["']([^"']+)["']/i);
+      if (u) return decode(u[1]);
+    }
+  }
+
+  for (const t of block.match(/<enclosure\b[^>]*\/?>/gi) || []) {
+    if (/\btype=["']image\//i.test(t)) {
+      const u = t.match(/\burl=["']([^"']+)["']/i);
+      if (u) return decode(u[1]);
+    }
+  }
+
+  m = block.match(/<itunes:image\b[^>]*\bhref=["']([^"']+)["']/i);
+  if (m) return decode(m[1]);
+
+  const body = tag(block, 'content:encoded') || tag(block, 'content') || tag(block, 'description') || tag(block, 'summary');
+  return firstImgSrc(body);
+}
+
 export function parseFeed(xml, limit = 20) {
   const isAtom = /<feed[\s>]/i.test(xml) && !/<rss[\s>]/i.test(xml);
   const itemRe = isAtom ? /<entry[\s>][\s\S]*?<\/entry>/gi : /<item[\s>][\s\S]*?<\/item>/gi;
@@ -50,6 +85,7 @@ export function parseFeed(xml, limit = 20) {
       title: tag(b, 'title'),
       link,
       date: toIso(tag(b, 'pubDate') || tag(b, 'published') || tag(b, 'updated') || tag(b, 'dc:date')),
+      image: extractImage(b),
     };
   });
 

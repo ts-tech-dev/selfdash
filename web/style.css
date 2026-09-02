@@ -2332,11 +2332,13 @@ body[data-has-bg]::before {
 }
 .tile-feed li {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: 8px;
   font-size: 0.82rem;
 }
 .tile-feed li a {
+  flex: 1;
+  min-width: 0;
   color: var(--text);
   text-decoration: none;
   overflow: hidden;
@@ -2344,6 +2346,14 @@ body[data-has-bg]::before {
   white-space: nowrap;
 }
 .tile-feed li a:hover { color: var(--accent); }
+.tile-feed-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+  background: var(--border);
+}
 .tile-feed-date,
 .tile-cal-when {
   color: var(--text-dim);
