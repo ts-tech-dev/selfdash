@@ -122,6 +122,16 @@ export function TileCard({
   // Built-in info/data panel tile (clock, weather, notes, …).
   if (panel) {
     const Body = panel.Component;
+    // A clock face already shows the time — a "Clock" header label is redundant
+    // chrome, so it skips the toolbar entirely outside edit mode. Edit mode still
+    // needs the bar for the drag handle / Edit button.
+    if (tile.type === 'clock' && !editing) {
+      return (
+        <div {...rootProps}>
+          <Body tile={tile} />
+        </div>
+      );
+    }
     return (
       <div {...rootProps}>
         <div class="tile-toolbar">

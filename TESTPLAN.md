@@ -95,6 +95,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T27 | A `link` tile can optionally attach an integration ("Include integration data" in the tile modal), carrying the same `config.views`/`moreIntegrationIds` a widget tile does; `integration_id` is validated when given (400 on a dangling id) and clearable via `PATCH` | ✅ `api/tiles` |
 | T28 | A `link` tile with an attached integration can't also be `open_mode: iframe` — forced back to `newtab` (the integration data fills the tile body, no room for an embed) | ✅ `api/tiles` |
 | T29 | `autoLinkTileHeight`: a combined link+integration tile's single non-scrollable view (`stats`/`nowplaying`/`calendar`) is bumped to the no-scroll minimum height (never shrunk below whatever was already picked); a scrollable view (`queue`/`list`) or an unknown type (integration not polled yet) leaves the height alone — wired in `TileModal.jsx`'s submit for a single selected (or default) view only, so a `queue`/`list` — a download queue, "recently imported" — keeps scrolling as intended | ✅ `unit/shared.misc` |
+| T30 | `bookmarks` sanitizer: each link's `column` is clamped to 1-4 independent of the current `columns` count (so lowering columns and raising it back doesn't lose an assignment); missing/invalid values default to 1 | ✅ `unit/shared.tileConfig` |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
@@ -331,7 +332,14 @@ Run after frontend changes or before a release. ~5 minutes.
    Add/Edit modal, expand "Group & appearance" on a short window (and on the
    glass/gradient themes) → the dimmed backdrop scrolls, the whole modal is
    reachable, and the Save/Cancel/Delete bar stays stuck to the bottom of the
-   screen.
+   screen. **Clock:** outside edit mode there's no toolbar/title bar at all —
+   just the time (and date, if enabled) filling the tile; entering edit mode
+   brings back the drag handle and Edit button as normal. **Bookmarks:** set
+   Columns to 2+ → each link row grows a "Col N" picker; assigning links to
+   column 2 (say) puts them in the second column's own list regardless of add
+   order, not wherever grid auto-flow would have put them; dropping Columns
+   back to 1 shows one flat list again, and raising it back to the same count
+   restores each link's column.
 5. **Tile layout:** drag a tile to a new cell, resize it from the corner grip,
    collapse a named group, reload — layout persisted. Edit a tile and change
    its Group → it lands in the target group's first free slot (bottom), never

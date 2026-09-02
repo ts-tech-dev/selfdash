@@ -81,10 +81,14 @@ const PANEL_SANITIZERS = {
   }),
   bookmarks: (c) => ({
     columns: num(c.columns, 1, 4, 1),
+    // column is 1-indexed and only meaningful once columns > 1; kept independent of
+    // the current columns count here (BookmarksTile clamps at render time) so
+    // lowering columns and raising it back doesn't lose each link's assignment.
     links: (Array.isArray(c.links) ? c.links : []).slice(0, 60).map((l) => ({
       title: str(l?.title, 120),
       url: str(l?.url, 500),
       icon: str(l?.icon, 500),
+      column: num(l?.column, 1, 4, 1),
     })).filter((l) => l.url),
   }),
   customapi: (c) => ({

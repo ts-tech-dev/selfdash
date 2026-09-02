@@ -2214,6 +2214,13 @@ body[data-has-bg]::before {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* Each column is its own <ul> (see BookmarksTile.jsx) so a link's column
+   assignment is explicit rather than falling out of grid auto-flow order. */
+.tile-bookmarks-cols {
   display: grid;
   grid-template-columns: repeat(var(--bookmark-cols, 1), 1fr);
   gap: 4px 12px;
@@ -2437,6 +2444,11 @@ body[data-has-bg]::before {
   color: var(--text);
   padding: 6px 8px;
   font-size: 0.85rem;
+}
+/* Only ever holds "Col 1".."Col 4" — fixed narrow width so it doesn't steal room
+   from the title/url/icon fields sharing the row. */
+.tile-bookmark-col-select {
+  flex: 0 0 68px;
 }
 .tile-config-repeat-row button {
   background: none;

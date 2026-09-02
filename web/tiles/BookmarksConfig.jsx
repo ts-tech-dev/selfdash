@@ -2,10 +2,11 @@
 // flat fields).
 export function BookmarksConfig({ value, onChange }) {
   const links = Array.isArray(value.links) ? value.links : [];
+  const columns = Math.min(4, Math.max(1, Number(value.columns) || 1));
 
   const setLinks = (next) => onChange('links', next);
   const update = (i, key, v) => setLinks(links.map((l, j) => (j === i ? { ...l, [key]: v } : l)));
-  const add = () => setLinks([...links, { title: '', url: '', icon: '' }]);
+  const add = () => setLinks([...links, { title: '', url: '', icon: '', column: 1 }]);
   const remove = (i) => setLinks(links.filter((_, j) => j !== i));
 
   return (
@@ -21,11 +22,28 @@ export function BookmarksConfig({ value, onChange }) {
         />
       </label>
       <span class="tile-config-repeat-label">Links</span>
+      {columns > 1 && (
+        <p class="field-hint">Pick which column each link sits in.</p>
+      )}
       {links.map((l, i) => (
         <div class="tile-config-repeat-row" key={i}>
           <input placeholder="Title" value={l.title || ''} onInput={(e) => update(i, 'title', e.target.value)} />
           <input placeholder="https://…" value={l.url || ''} onInput={(e) => update(i, 'url', e.target.value)} />
           <input placeholder="Icon URL (optional)" value={l.icon || ''} onInput={(e) => update(i, 'icon', e.target.value)} />
+          {columns > 1 && (
+            <select
+              class="tile-bookmark-col-select"
+              aria-label="Column"
+              value={Math.min(columns, Math.max(1, l.column || 1))}
+              onChange={(e) => update(i, 'column', Number(e.target.value))}
+            >
+              {Array.from({ length: columns }, (_, ci) => ci + 1).map((n) => (
+                <option key={n} value={n}>
+                  Col {n}
+                </option>
+              ))}
+            </select>
+          )}
           <button type="button" onClick={() => remove(i)} aria-label="Remove">
             ✕
           </button>

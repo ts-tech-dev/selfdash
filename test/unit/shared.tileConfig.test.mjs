@@ -96,6 +96,19 @@ test('sanitizeTileConfig bookmarks: drops links without a url, caps length', () 
   assert.ok(c.links.every((l) => l.url));
 });
 
+test('sanitizeTileConfig bookmarks: each link keeps a clamped column (independent of the current columns count)', () => {
+  const c = sanitizeTileConfig('bookmarks', {
+    columns: 2,
+    links: [
+      { url: 'https://a', column: 3 },
+      { url: 'https://b', column: 0 },
+      { url: 'https://c' },
+      { url: 'https://d', column: 'nope' },
+    ],
+  });
+  assert.deepEqual(c.links.map((l) => l.column), [3, 1, 1, 1]);
+});
+
 test('sanitizeTileConfig customapi: method whitelist + header filtering', () => {
   const c = sanitizeTileConfig('customapi', {
     url: 'https://api.example.com',
