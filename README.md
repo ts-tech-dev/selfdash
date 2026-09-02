@@ -357,9 +357,10 @@ Measured with `docker stats` — Fastify + the frontend served + the integration
 - **Idle RSS: ~30-40 MB** (well under the ~55-80 MB original estimate and the 100 MB target)
 - **Idle CPU: ~0%** (timer-driven only — nothing polls unless an integration is configured and
   enabled)
-- **Docker image size: ~290 MB** — almost entirely the `node:22-alpine` base image itself
-  (~170 MB before any app code); the original ~150 MB projection undershot this and wasn't chased
-  further, since the base image accounts for most of it regardless of what's built on top.
+- **Docker image size: ~240 MB.** The runtime stage isn't `node:22-alpine` itself — it's bare
+  Alpine plus just the Node binary (build/deps stages still use `node:22-alpine` to install
+  dependencies and run esbuild, but npm/corepack/yarn/headers never make it into the final image,
+  since nothing needs them after build time). Down from ~290 MB before that split.
 
 Each additional *enabled* integration adds one lightweight timer plus whatever memory its last
 cached JSON response occupies — not meaningfully measured individually here, but bounded by
