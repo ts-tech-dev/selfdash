@@ -1105,10 +1105,15 @@ body[data-has-bg]::before {
   text-align: center;
 }
 
+/* Flex, not grid: a fixed minmax() column width wraps to a second row once the
+   stats don't fit at that width. Flex items shrink together instead, so any
+   number of stats stays on one line — the container queries below step the
+   type down as the tile narrows so it stays legible rather than clipping. */
 .widget-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 6px;
   margin: auto 0;
 }
 
@@ -1117,16 +1122,38 @@ body[data-has-bg]::before {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .widget-stat-value {
   font-size: 1.2rem;
   font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .widget-stat-label {
   font-size: 0.7rem;
   color: var(--text-dim);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container tile (max-width: 260px) {
+  .widget-stats { gap: 4px; }
+  .widget-stat-value { font-size: 1.05rem; }
+  .widget-stat-label { font-size: 0.64rem; }
+}
+
+@container tile (max-width: 160px) {
+  .widget-stats { gap: 3px; }
+  .widget-stat-value { font-size: 0.9rem; }
+  .widget-stat-label { font-size: 0.58rem; }
 }
 
 .widget-nowplaying {

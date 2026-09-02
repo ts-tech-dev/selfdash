@@ -385,7 +385,10 @@ Run after frontend changes or before a release. ~5 minutes.
 10. **Tile scaling:** drop a **weather** tile and a **calendar** widget to the
     smallest (1×1) size → text isn't clipped: weather keeps icon + temp + one
     line, the calendar grid fills the tile with day tint/dots instead of event
-    titles. Resize larger → detail comes back.
+    titles. Resize larger → detail comes back. Also check a **stats** view
+    (e.g. Radarr/Sonarr's library counts) with 4+ values at S/M size — they
+    stay on one row (shrinking together, smaller type) instead of wrapping to
+    a second line.
 11. **Compose panel:** with a compose dir configured, the "Ports & volumes"
     panel is one surface matching the tiles (same border/radius/shadow; frosts
     on the glass/gradient themes), full width so it lines up with the grid.
