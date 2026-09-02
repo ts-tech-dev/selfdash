@@ -108,39 +108,6 @@ describe('config export / import (YAML)', () => {
     assert.deepEqual(widgetAfter.config.moreIntegrationIds, [newExtra.id]);
   });
 
-  it("export/import round-trips a widget tile's optional url/icon (combined widget+link tile)", async () => {
-    const page = (await s.request('/api/pages')).body[0];
-    const integ = (
-      await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'Linked Widget', config: { url: 'http://g:1' } } })
-    ).body;
-    await s.request(`/api/pages/${page.id}/tiles`, {
-      method: 'POST',
-      body: { type: 'widget', integration_id: integ.id, url: 'https://gluetun.local', icon: 'di:gluetun', open_mode: 'same' },
-    });
-
-    const doc = parseYaml(await (await fetch(`${s.base}/api/config/export`)).text());
-    const tileDoc = doc.pages.flatMap((p) => p.tiles).find((t) => t.type === 'widget' && t.url);
-    assert.ok(tileDoc, 'exported doc has the widget tile with its url');
-    assert.equal(tileDoc.url, 'https://gluetun.local');
-    assert.equal(tileDoc.icon, 'di:gluetun');
-    assert.equal(tileDoc.open_mode, 'same');
-
-    const importRes = await fetch(`${s.base}/api/config/import`, {
-      method: 'POST',
-      headers: { 'content-type': 'text/yaml' },
-      body: stringifyYaml(doc),
-    });
-    assert.equal(importRes.status, 200);
-
-    const pageAfter = (await s.request('/api/pages')).body[0];
-    const tilesAfter = (await s.request(`/api/pages/${pageAfter.id}/tiles`)).body;
-    const widgetAfter = tilesAfter.find((t) => t.type === 'widget' && t.icon === 'di:gluetun');
-    assert.ok(widgetAfter, 'widget tile with icon di:gluetun survived the reimport');
-    assert.equal(widgetAfter.url, 'https://gluetun.local');
-    assert.equal(widgetAfter.icon, 'di:gluetun');
-    assert.equal(widgetAfter.open_mode, 'same');
-  });
-
   it('POST /api/config/import?settings=0 leaves settings untouched', async () => {
     await s.request('/api/settings', { method: 'PATCH', body: { site_title: 'Keep Me' } });
     const yaml = 'version: 1\nsettings:\n  site_title: Should Not Apply\npages:\n  - name: Only\n    slug: only\n    tiles: []\n';

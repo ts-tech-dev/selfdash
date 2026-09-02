@@ -133,14 +133,10 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
       if (form.views.length === 1 && form.moreIntegrationIds.length) {
         widgetCfg.moreIntegrationIds = form.moreIntegrationIds;
       }
-      const url = form.url.trim();
       onSave({
         type: 'widget',
         title,
         integration_id: Number(form.integration_id),
-        url: url || null,
-        icon: form.icon.trim() || null,
-        open_mode: url ? form.open_mode : 'newtab',
         w,
         h,
         config: { ...widgetCfg, ...commonConfig() },
@@ -274,30 +270,6 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
               Merges {(viewCatalog[singleViewKey] || '').toLowerCase()} from these into the same tile.
             </p>
           </div>
-        )}
-
-        {isWidget && (
-          <>
-            <IconPicker value={form.icon} onChange={(v) => update('icon', v)} />
-            <label>
-              Link (optional)
-              <input
-                value={form.url}
-                onInput={(e) => update('url', e.target.value)}
-                placeholder="https://example.com"
-              />
-            </label>
-            <p class="field-hint">Makes the icon/title open this URL — the live data still shows below it.</p>
-            {form.url.trim() && (
-              <label>
-                Open in
-                <select value={form.open_mode} onChange={(e) => update('open_mode', e.target.value)}>
-                  <option value="newtab">New tab</option>
-                  <option value="same">Same tab</option>
-                </select>
-              </label>
-            )}
-          </>
         )}
 
         {isPanel && panelEntry && (

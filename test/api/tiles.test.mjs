@@ -77,36 +77,6 @@ describe('tiles API', () => {
     assert.equal(r.body.config.moreIntegrationIds, undefined);
   });
 
-  it('widget tile accepts an optional url/icon so it also acts as a link', async () => {
-    const a = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'E', config: { url: 'http://e:1' } } })).body;
-    const r = await create({
-      type: 'widget',
-      integration_id: a.id,
-      url: 'https://gluetun.local',
-      icon: 'di:gluetun',
-      open_mode: 'same',
-    });
-    assert.equal(r.status, 201);
-    assert.equal(r.body.url, 'https://gluetun.local');
-    assert.equal(r.body.icon, 'di:gluetun');
-    assert.equal(r.body.open_mode, 'same');
-  });
-
-  it('widget tile url is optional and must be http(s) when given; iframe open_mode is rejected in favor of newtab', async () => {
-    const a = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'F', config: { url: 'http://f:1' } } })).body;
-
-    const noLink = await create({ type: 'widget', integration_id: a.id });
-    assert.equal(noLink.status, 201);
-    assert.equal(noLink.body.url, null);
-
-    const bad = await create({ type: 'widget', integration_id: a.id, url: 'ftp://x' });
-    assert.equal(bad.status, 400);
-
-    const iframeReq = await create({ type: 'widget', integration_id: a.id, url: 'https://x.y', open_mode: 'iframe' });
-    assert.equal(iframeReq.status, 201);
-    assert.equal(iframeReq.body.open_mode, 'newtab');
-  });
-
   it('unknown type falls back to link (and then needs a url)', async () => {
     const r = await create({ type: 'wormhole', url: 'https://x.y' });
     assert.equal(r.status, 201);

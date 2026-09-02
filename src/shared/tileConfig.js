@@ -226,27 +226,9 @@ export function resolveTileFields(db, type, body, existing) {
       ? db.prepare('SELECT id FROM integrations WHERE id = ?').get(integrationId)
       : null;
     if (!integration) throw new Error('integration_id must reference an existing integration');
-
-    // A widget tile can optionally also act as a link tile — an icon/title that opens
-    // the underlying service, with the live integration data rendered below it (like a
-    // homepage-style combined tile). Both are optional and independent of each other.
-    let url = existing ? existing.url : null;
-    if (body.url !== undefined) {
-      const trimmed = typeof body.url === 'string' ? body.url.trim() : '';
-      if (trimmed && !URL_RE.test(trimmed)) throw new Error('url must start with http:// or https://');
-      url = trimmed || null;
-    }
-    // No iframe embedding for a widget's link — the tile body is already spoken for
-    // by the widget data, so only newtab/same are meaningful here.
-    let open_mode = existing?.open_mode === 'iframe' ? 'newtab' : existing?.open_mode || 'newtab';
-    if (body.open_mode !== undefined) {
-      const normalized = normalizeOpenMode(body.open_mode);
-      open_mode = normalized === 'iframe' ? 'newtab' : normalized;
-    }
-
     return {
-      url,
-      open_mode,
+      url: null,
+      open_mode: 'newtab',
       integration_id: integrationId,
       config: { ...widgetConfig(db, rawConfig, integrationId), ...common },
     };

@@ -102,10 +102,6 @@ export function buildConfigDoc(db, crypto, registry) {
               if (refs.length) cfg.moreIntegrationIds = refs;
               else delete cfg.moreIntegrationIds;
             }
-            // A widget tile's link fields are optional (see resolveTileFields).
-            if (t.url) out.url = t.url;
-            if (t.icon) out.icon = t.icon;
-            if (t.open_mode && t.open_mode !== 'newtab') out.open_mode = t.open_mode;
           } else {
             if (t.url) out.url = t.url;
             if (t.icon) out.icon = t.icon;
@@ -240,7 +236,7 @@ export function importConfigDoc(app, doc, { includeSettings = true } = {}) {
           type,
           t.title || null,
           f.url,
-          t.icon || null,
+          type === 'widget' ? null : t.icon || null,
           type === 'widget' ? null : t.description || null,
           f.open_mode,
           f.integration_id,
