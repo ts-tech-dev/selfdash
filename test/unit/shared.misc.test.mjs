@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SIZE_PRESETS, sizeKeyFromWH } from '../../src/shared/tileSizes.js';
+import { SIZE_PRESETS, sizeKeyFromWH, autoLinkTileHeight } from '../../src/shared/tileSizes.js';
 import { sanitizePageOptions } from '../../src/shared/pageOptions.js';
 import { fmtRate } from '../../src/shared/format.js';
 
@@ -14,6 +14,20 @@ test('sizeKeyFromWH: exact match or "M" fallback', () => {
   assert.equal(sizeKeyFromWH(2, 2), 'L');
   assert.equal(sizeKeyFromWH(4, 1), 'wide');
   assert.equal(sizeKeyFromWH(3, 3), 'M');
+});
+
+test('autoLinkTileHeight: bumps a compact view (stats/nowplaying/calendar) up to the no-scroll minimum', () => {
+  assert.equal(autoLinkTileHeight(1, 'stats'), 2);
+  assert.equal(autoLinkTileHeight(1, 'nowplaying'), 2);
+  assert.equal(autoLinkTileHeight(1, 'calendar'), 2);
+  assert.equal(autoLinkTileHeight(3, 'stats'), 3, 'never shrinks an already-taller pick');
+});
+
+test('autoLinkTileHeight: leaves a scrollable view (queue/list) and an unknown type alone', () => {
+  assert.equal(autoLinkTileHeight(1, 'queue'), 1, 'a download queue is meant to scroll');
+  assert.equal(autoLinkTileHeight(1, 'list'), 1, '"recently imported" etc. is meant to scroll');
+  assert.equal(autoLinkTileHeight(1, null), 1, 'integration not polled yet — type unknown, leave as chosen');
+  assert.equal(autoLinkTileHeight(1, undefined), 1);
 });
 
 test('sanitizePageOptions: empty in, empty out', () => {

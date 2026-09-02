@@ -94,6 +94,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T26 | `composePorts.js` `uniqueHostPorts` — de-dupe + numeric sort + protocol-normalise of published host ports, shared by the panel-wide strip and each stack's summary chips | ✅ `unit/shared.composePorts` |
 | T27 | A `link` tile can optionally attach an integration ("Include integration data" in the tile modal), carrying the same `config.views`/`moreIntegrationIds` a widget tile does; `integration_id` is validated when given (400 on a dangling id) and clearable via `PATCH` | ✅ `api/tiles` |
 | T28 | A `link` tile with an attached integration can't also be `open_mode: iframe` — forced back to `newtab` (the integration data fills the tile body, no room for an embed) | ✅ `api/tiles` |
+| T29 | `autoLinkTileHeight`: a combined link+integration tile's single non-scrollable view (`stats`/`nowplaying`/`calendar`) is bumped to the no-scroll minimum height (never shrunk below whatever was already picked); a scrollable view (`queue`/`list`) or an unknown type (integration not polled yet) leaves the height alone — wired in `TileModal.jsx`'s submit for a single selected (or default) view only, so a `queue`/`list` — a download queue, "recently imported" — keeps scrolling as intended | ✅ `unit/shared.misc` |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |

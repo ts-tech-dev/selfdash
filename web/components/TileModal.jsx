@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { SIZE_PRESETS, sizeKeyFromWH } from '../../src/shared/tileSizes.js';
+import { SIZE_PRESETS, sizeKeyFromWH, autoLinkTileHeight } from '../../src/shared/tileSizes.js';
 import { api } from '../api.js';
 import { integrations, availableIntegrations, tiles } from '../store.js';
 import { DynamicConfigForm } from './DynamicConfigForm.jsx';
@@ -166,6 +166,13 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
         widgetCfg.moreIntegrationIds = form.moreIntegrationIds;
       }
     }
+    let linkH = h;
+    if (includeIntegration && form.integration_id && form.views.length <= 1) {
+      const integ = integrations.value.find((i) => i.id === Number(form.integration_id));
+      const key = form.views[0] || viewKeys[0];
+      const viewType = key ? integ?.data?.byView?.[key]?.type : null;
+      linkH = autoLinkTileHeight(linkH, viewType);
+    }
     onSave({
       type: 'link',
       title,
@@ -175,7 +182,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
       open_mode: form.open_mode,
       integration_id: includeIntegration && form.integration_id ? Number(form.integration_id) : null,
       w,
-      h,
+      h: linkH,
       config:
         form.open_mode === 'iframe'
           ? { ...form.iframe, ...commonConfig() }
@@ -357,6 +364,10 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
                     ))}
                     <p class="field-hint">
                       Nothing checked uses the first view. Check several to stack them in one tile.
+                    </p>
+                    <p class="field-hint">
+                      Stats and now-playing views get extra height automatically so nothing scrolls;
+                      queues and lists keep the size you pick below.
                     </p>
                   </div>
                 )}
