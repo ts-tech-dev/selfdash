@@ -146,7 +146,8 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | I14 | Wrong key / tampered ciphertext fails closed | ✅ `unit/lib.crypto` |
 | I15 | Per-integration upstream parsing (qbit torrents, tautulli now-playing, …) | ⏭️ needs live services; covered indirectly by I2 + view helpers |
 | I16 | Sonarr/Radarr `calendar` view: maps upstream records to `{ts,title,subtitle,image}`, drops undated records, sorts ascending, picks the earliest of several release dates, carries the series/movie poster URL through as `image`, honors `config.upcomingDays` for the window | ✅ `unit/integrations.arrCalendar` |
-| I17 | `runAllViews`: fetches every declared view every poll (not just a configured subset), keyed by view key in `byView`; one view failing lands as `{type:'error'}` in its own slot without taking the rest down; every view failing throws so the poll is marked unreachable and last-good data stays on screen | ✅ `unit/integrations.views` |
+| I17 | `runAllViews`: fetches every declared view every poll (not just a configured subset), keyed by view key in `byView`; one view failing falls back to that view's last-good data tagged `stale: true` (via `ctx.previous`, wired by `poller/scheduler.js` from `last_data_json`) instead of blanking it out, or `{type:'error'}` if there's no previous data to fall back to; every view failing throws so the poll is marked unreachable and last-good data stays on screen | ✅ `unit/integrations.views` |
+| I18 | Merged download-queue tiles (qbittorrent + sabnzbd, "Also include"): a transient per-view failure on one source no longer drops that source's rows from the merged queue for the cycle — `WidgetTile.jsx` shows a "stale data" banner naming the affected source(s) instead | 🖐️ (see §9) |
 
 ### 3.7 Tile data proxies (`src/routes/tileData.js`)
 | # | Case | Where |
@@ -388,7 +389,11 @@ Run after frontend changes or before a release. ~5 minutes.
    and "Also include" a SABnzbd integration → one queue with every item, each
    row labelled with its client. The "Also include" list must offer only other
    download clients here — Radarr/Sonarr (also have a `queue` view) must not
-   appear, since they're in a different `mergeGroup`. The first "Also include"
+   appear, since they're in a different `mergeGroup`. Break one client's queue
+   fetch temporarily (e.g. wrong password) while its other view (stats) still
+   works, then trigger a poll → the merged queue keeps showing that client's
+   last-good rows (not blanked) and a "stale data — <name>" banner appears atop
+   the tile; fix the config and poll again → banner clears, rows update. The first "Also include"
    check (on either a widget tile or a link tile with "Include integration
    data") auto-fills a blank Title field with the view's own label ("Download
    queue") — typing a title first, or already having one, must leave it alone.

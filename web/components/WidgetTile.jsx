@@ -329,6 +329,28 @@ function byViewOf(integration, key) {
   return integration?.data?.byView?.[key] || null;
 }
 
+// Which sources are showing stale data for the view(s) this tile is actually
+// displaying — either the whole integration is unreachable, or (see _views.js)
+// just the one view fell back to last-good data after a transient failure. Name ->
+// error message, so the banner can name each source and explain why in its title.
+function staleSourceEntries(sources, viewKeys) {
+  const entries = new Map();
+  for (const i of sources) {
+    if (i.last_status === 'unreachable') {
+      entries.set(i.name, i.last_error);
+      continue;
+    }
+    for (const k of viewKeys) {
+      const v = byViewOf(i, k);
+      if (v?.stale) {
+        entries.set(i.name, v.error);
+        break;
+      }
+    }
+  }
+  return entries;
+}
+
 export function WidgetTile({ tile }) {
   const primary = tile.integration_id ? integrations.value.find((i) => i.id === tile.integration_id) : null;
 
@@ -384,13 +406,16 @@ export function WidgetTile({ tile }) {
     body = <SectionsView sections={sections} />;
   }
 
-  const staleSources = sources.filter((i) => i.last_status === 'unreachable');
+  const staleEntries = staleSourceEntries(sources, viewKeys);
 
   return (
     <div class={`widget-body${sectionsMode ? ' widget-body-sections' : ''}${primary.enabled ? '' : ' widget-disabled'}`}>
-      {staleSources.length > 0 && (
-        <div class="widget-stale-banner" title={staleSources.map((i) => `${i.name}: ${i.last_error}`).join('\n')}>
-          stale data — {staleSources.map((i) => i.name).join(', ')}
+      {staleEntries.size > 0 && (
+        <div
+          class="widget-stale-banner"
+          title={[...staleEntries].map(([name, err]) => `${name}: ${err}`).join('\n')}
+        >
+          stale data — {[...staleEntries.keys()].join(', ')}
         </div>
       )}
       {body}

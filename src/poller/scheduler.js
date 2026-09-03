@@ -27,9 +27,19 @@ export function createPoller({ db, registry, http, crypto, log }) {
       return;
     }
 
+    // Handed to fetchData as ctx.previous so a multi-view integration (see _views.js)
+    // can fall back to last-good data for just the one view that failed this cycle,
+    // instead of every failing view blanking out data that was fine a moment ago.
+    let previous = null;
+    try {
+      previous = row.last_data_json ? JSON.parse(row.last_data_json) : null;
+    } catch {
+      previous = null;
+    }
+
     try {
       const instance = new IntegrationClass();
-      const data = await instance.fetchData({ config, http });
+      const data = await instance.fetchData({ config, http, previous });
       db.prepare(
         `UPDATE integrations
          SET last_status = 'ok', last_data_json = ?, last_ok_at = datetime('now'), last_error = NULL

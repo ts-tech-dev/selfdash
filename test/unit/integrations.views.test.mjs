@@ -32,3 +32,33 @@ test('runAllViews: every view failing throws (poll marked unreachable, last-good
   };
   await assert.rejects(() => runAllViews({}, views), /A: timeout.*B: 401|B: 401.*A: timeout/s);
 });
+
+test('runAllViews: a view that failed but has last-good data falls back to it (tagged stale) instead of blanking out', async () => {
+  const views = {
+    queue: { label: 'Queue', run: async () => { throw new Error('login failed'); } },
+    stats: { label: 'Stats', run: async () => ({ type: 'stats', items: [{ label: 'x', value: 1 }] }) },
+  };
+  const previous = {
+    type: 'multi',
+    byView: { queue: { type: 'queue', items: [{ title: 'still downloading' }] }, stats: { type: 'stats', items: [] } },
+  };
+  const result = await runAllViews({ previous }, views);
+  assert.equal(result.byView.queue.type, 'queue');
+  assert.deepEqual(result.byView.queue.items, [{ title: 'still downloading' }]);
+  assert.equal(result.byView.queue.stale, true);
+  assert.equal(result.byView.queue.error, 'login failed');
+  assert.equal(result.byView.stats.type, 'stats');
+});
+
+test('runAllViews: a failing view with no previous data (or previous data that was itself an error) still becomes a hard error', async () => {
+  const views = {
+    queue: { label: 'Queue', run: async () => { throw new Error('login failed'); } },
+    stats: { label: 'Stats', run: async () => ({ type: 'stats', items: [] }) },
+  };
+  const noPrevious = await runAllViews({}, views);
+  assert.equal(noPrevious.byView.queue.type, 'error');
+
+  const previous = { type: 'multi', byView: { queue: { type: 'error', error: 'earlier failure' } } };
+  const staleErrorPrevious = await runAllViews({ previous }, views);
+  assert.equal(staleErrorPrevious.byView.queue.type, 'error');
+});
