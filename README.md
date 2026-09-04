@@ -3,6 +3,7 @@
 [![Docker Image Version](https://img.shields.io/docker/v/tstech0806/selfdash?sort=semver&label=docker)](https://hub.docker.com/r/tstech0806/selfdash)
 [![Docker Pulls](https://img.shields.io/docker/pulls/tstech0806/selfdash)](https://hub.docker.com/r/tstech0806/selfdash)
 [![Docker Image Size](https://img.shields.io/docker/image-size/tstech0806/selfdash/latest)](https://hub.docker.com/r/tstech0806/selfdash)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A self-hosted "homepage" dashboard — a lighter-weight, more UI-customizable alternative to
 Homepage / Homarr / Heimdall. Every bit of configuration (pages, tiles, themes, integrations)
