@@ -6,6 +6,19 @@ is editable from the browser; nothing is YAML-file-driven. Config is persisted t
 uploaded assets under a single data directory, so the whole instance is portable via the built-in
 backup/restore.
 
+![selfdash dashboard — dark theme](docs/screenshots/dashboard-dark.png)
+
+<details>
+<summary>Light theme</summary>
+
+![selfdash dashboard — light theme](docs/screenshots/dashboard-light.png)
+
+</details>
+
+Sample page shown — clock, weather, server stats, bookmarks, an RSS feed, notes, search, and
+two groups of app-launcher tiles. None of it is fixed: tile types, layout, grouping, and theme
+are all picked per page from the browser.
+
 ## Quick start
 
 Grab [`docker-compose.yml`](docker-compose.yml) (it pulls the prebuilt
