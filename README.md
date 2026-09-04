@@ -1,5 +1,9 @@
 # selfdash
 
+[![Docker Image Version](https://img.shields.io/docker/v/tstech0806/selfdash?sort=semver&label=docker)](https://hub.docker.com/r/tstech0806/selfdash)
+[![Docker Pulls](https://img.shields.io/docker/pulls/tstech0806/selfdash)](https://hub.docker.com/r/tstech0806/selfdash)
+[![Docker Image Size](https://img.shields.io/docker/image-size/tstech0806/selfdash/latest)](https://hub.docker.com/r/tstech0806/selfdash)
+
 A self-hosted "homepage" dashboard — a lighter-weight, more UI-customizable alternative to
 Homepage / Homarr / Heimdall. Every bit of configuration (pages, tiles, themes, integrations)
 is editable from the browser; nothing is YAML-file-driven. Config is persisted to SQLite +
@@ -18,6 +22,34 @@ backup/restore.
 Sample page shown — clock, weather, server stats, bookmarks, an RSS feed, notes, search, and
 two groups of app-launcher tiles. None of it is fixed: tile types, layout, grouping, and theme
 are all picked per page from the browser.
+
+## Why selfdash
+
+- **No YAML.** Pages, tiles, themes, and integrations are all configured by clicking around in
+  the browser — nothing to hand-edit, indent correctly, or restart the container over.
+- **12 tile types**, not just links: clock, weather, notes, search, RSS/Atom, an ICS calendar,
+  bookmarks, a custom-API mapper, host resources (CPU/mem/disk/net), an iframe embed, plus a
+  widget tile for any of the 14 built-in service integrations.
+- **Portable by default.** Everything lives in one SQLite file plus an uploads folder — export
+  a `.zip` (full backup) or a `.yaml` (version-controllable config, secrets kept out) and restore
+  either onto a fresh container.
+- **Drop-in integrations.** Add a new service by dropping a `*.integration.js` file into the data
+  volume — no image rebuild, no core code changes. The five generic view types (`stats`,
+  `nowplaying`, `queue`, `list`, `calendar`) mean the frontend needs zero changes for it either.
+- **Actually light.** ~30-40 MB idle RSS, ~0% idle CPU, a ~240 MB image built from bare Alpine
+  (not `node:22-alpine`) with no bundler or dev toolchain shipped at runtime.
+- **8 built-in themes** (minimal, glass, terminal, gradient, nord, rosé pine, dracula, oled) ×
+  light/dark/system, plus a free accent color and per-tile color overrides.
+
+|  | selfdash | Homepage | Homarr | Heimdall |
+|---|---|---|---|---|
+| Configuration | In-browser | YAML files | In-browser | In-browser |
+| Backup/restore | Built-in `.zip` + `.yaml` export | Manual (your YAML files) | Varies | Manual |
+| Add an integration | Drop a JS file, no rebuild | Edit YAML / core code | Plugin system | Limited |
+| Idle RSS | ~30-40 MB | Low | Higher (Next.js) | Low |
+
+*(A fair comparison, not a takedown — Homepage's YAML model is a deliberate, well-executed
+choice that suits a lot of setups better than a database-backed UI does.)*
 
 ## Quick start
 
@@ -317,14 +349,15 @@ version.
 
 ## Theming
 
-Settings → pick a theme (**minimal**, **glass**, **terminal**, **gradient**) and an appearance
-mode (**light** / **dark** / **system**). Every theme defines both a light and dark token set;
+Settings → pick a theme (**minimal**, **glass**, **terminal**, **gradient**, **nord**,
+**rosé pine**, **dracula**, **oled**) and an appearance mode (**light** / **dark** / **system**).
+Every theme defines both a light and dark token set;
 `system` resolves via `prefers-color-scheme` in the browser and updates live if the OS setting
 changes while the tab is open. The accent color is a single CSS variable (`--accent`) layered on
 top of whichever theme is active, so any theme + any accent combination works.
 
 Themes are plain CSS custom properties in `web/style.css`, scoped under
-`[data-theme="..."][data-mode="..."]` selectors — adding a fifth theme is a CSS-only change, no
+`[data-theme="..."][data-mode="..."]` selectors — adding a new theme is a CSS-only change, no
 JS required.
 
 ## Architecture
@@ -379,16 +412,15 @@ Each additional *enabled* integration adds one lightweight timer plus whatever m
 cached JSON response occupies — not meaningfully measured individually here, but bounded by
 design (no per-integration process, no unbounded cache growth).
 
-## What's not yet verified against the real world
+## Project status
 
-This was built and tested end-to-end (API round-trips, database persistence, Docker rebuild/
-redeploy, per-integration mock-server suites) throughout, but two categories of verification are
-worth doing before relying on this as a daily driver:
+Actively developed — see [`TESTPLAN.md`](TESTPLAN.md) for the full case-by-case catalog. Every
+change ships behind the automated suite (unit + API + a headless-browser smoke test) plus a
+manual click-through checklist for anything touching layout or interaction; nothing merges
+without both. Six of the fourteen built-in integrations (qBittorrent, SABnzbd, Radarr, Sonarr,
+Plex, Audiobookshelf) have also been confirmed against live instances — the rest are a solid
+first draft built from documented API shapes, not yet exercised against every real-world
+version/config quirk.
 
-1. **Actual browser interaction** — clicking through the UI, dragging tiles to reorder, seeing
-   the four themes render, watching an iframe tile actually embed a page. Most of this was built
-   without browser tooling connected; behaviour was verified through the API and the built JS
-   bundle, which catches logic bugs but not layout, visual, or interaction bugs.
-2. **Real integration endpoints** — several integrations were validated only against mock HTTP
-   servers built from documented API knowledge. Field names, auth quirks, or API version
-   differences in a given setup may need small fixes.
+There is intentionally **no auth in v1** (see Architecture below) — put it behind a reverse
+proxy or VPN if it's reachable from anywhere you don't fully trust.
