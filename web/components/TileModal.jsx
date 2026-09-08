@@ -8,14 +8,6 @@ import { TILE_REGISTRY, registryEntry } from '../tiles/registry.jsx';
 import { ContrastHint } from './settings/ContrastHint.jsx';
 import { isHexColor } from '../../src/shared/color.js';
 
-const ASPECT_RATIOS = ['16/9', '4/3', '1/1', '21/9'];
-const DEFAULT_IFRAME_CONFIG = {
-  sizing: 'aspect',
-  aspectRatio: '16/9',
-  height: 400,
-  sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups',
-};
-
 const PANEL_TYPES = Object.keys(TILE_REGISTRY);
 const CATEGORIES = [...new Set(PANEL_TYPES.map((t) => TILE_REGISTRY[t].category))];
 
@@ -37,7 +29,6 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     description: tile?.description || '',
     size: tile ? sizeKeyFromWH(tile.w, tile.h) : 'M',
     open_mode: tile?.open_mode || 'newtab',
-    iframe: { ...DEFAULT_IFRAME_CONFIG, ...(tile?.open_mode === 'iframe' ? tile.config : {}) },
     integration_id: tile?.integration_id || integrations.value[0]?.id || '',
     views: Array.isArray(tile?.config?.views) ? tile.config.views : [],
     moreIntegrationIds: Array.isArray(tile?.config?.moreIntegrationIds) ? tile.config.moreIntegrationIds : [],
@@ -77,9 +68,6 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
-  }
-  function updateIframe(field, value) {
-    setForm((f) => ({ ...f, iframe: { ...f.iframe, [field]: value } }));
   }
   function updatePanel(field, value) {
     setForm((f) => ({ ...f, panelConfig: { ...f.panelConfig, [field]: value } }));
@@ -192,10 +180,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
       integration_id: includeIntegration && form.integration_id ? Number(form.integration_id) : null,
       w,
       h: linkH,
-      config:
-        form.open_mode === 'iframe'
-          ? { ...form.iframe, ...commonConfig() }
-          : { ...widgetCfg, ...commonConfig() },
+      config: { ...widgetCfg, ...commonConfig() },
     });
   }
 
@@ -337,12 +322,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
                 onChange={(e) => {
                   const checked = e.target.checked;
                   setIncludeIntegration(checked);
-                  if (checked) {
-                    if (!form.integration_id) pickIntegration(integrations.value[0]?.id || '');
-                    // The integration data fills the tile body once this is on — no room
-                    // left for an iframe embed of the link itself.
-                    if (form.open_mode === 'iframe') update('open_mode', 'newtab');
-                  }
+                  if (checked && !form.integration_id) pickIntegration(integrations.value[0]?.id || '');
                 }}
               />
               Include integration data
@@ -421,48 +401,8 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
             <select value={form.open_mode} onChange={(e) => update('open_mode', e.target.value)}>
               <option value="newtab">New tab</option>
               <option value="same">Same tab</option>
-              {!includeIntegration && <option value="iframe">Embed as iframe</option>}
             </select>
           </label>
-        )}
-
-        {isLink && !includeIntegration && form.open_mode === 'iframe' && (
-          <fieldset class="iframe-fields">
-            <label>
-              Sizing
-              <select value={form.iframe.sizing} onChange={(e) => updateIframe('sizing', e.target.value)}>
-                <option value="aspect">Aspect ratio</option>
-                <option value="height">Fixed height</option>
-              </select>
-            </label>
-            {form.iframe.sizing === 'aspect' ? (
-              <label>
-                Aspect ratio
-                <select value={form.iframe.aspectRatio} onChange={(e) => updateIframe('aspectRatio', e.target.value)}>
-                  {ASPECT_RATIOS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              <label>
-                Height (px)
-                <input
-                  type="number"
-                  min="100"
-                  max="2000"
-                  value={form.iframe.height}
-                  onInput={(e) => updateIframe('height', Number(e.target.value))}
-                />
-              </label>
-            )}
-            <label>
-              Sandbox (advanced)
-              <input value={form.iframe.sandbox} onInput={(e) => updateIframe('sandbox', e.target.value)} />
-            </label>
-          </fieldset>
         )}
 
         <button type="button" class="modal-disclosure" onClick={() => setShowAppearance((v) => !v)}>

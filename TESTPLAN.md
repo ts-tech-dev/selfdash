@@ -68,7 +68,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T1 | Create `link` tile; response has parsed `config: {}` and `open_mode: newtab` | ✅ `api/tiles` |
 | T2 | `link` tile without a valid `http(s)` url → 400 | ✅ `api/tiles` · `unit/shared.tileConfig` |
 | T3 | Create panel tile (`clock`) — sanitized config, `url: null` | ✅ `api/tiles` |
-| T4 | `open_mode: iframe` builds `{sizing,aspectRatio,height,sandbox}`; bad aspect → `16/9`; bad sandbox tokens dropped | ✅ `api/tiles` · `unit/shared.tileConfig` |
+| T4 | `iframe` is its own tile type (not a link `open_mode`): requires a valid `http(s)` `config.url` (else 400), builds `{url,sizing,aspectRatio,height,sandbox}` in `config` with `url: null` on the tile itself; bad aspect → `16/9`; bad sandbox tokens dropped; a link tile's `open_mode` can no longer be set to `iframe` (falls back to `newtab`) | ✅ `api/tiles` · `unit/shared.tileConfig` |
 | T5 | `widget` tile requires an existing `integration_id` (else 400) | ✅ `api/tiles` |
 | T6 | Unknown `type` falls back to `link` | ✅ `api/tiles` · `unit/shared.tileConfig` |
 | T7 | Geometry clamped on create (`w≤6,h≤6,x≤11,y≥0`) and on patch | ✅ `api/tiles` |
@@ -93,7 +93,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T25 | `color.js` `isHexColor` (only `#rrggbb`, any case; rejects shorthand/names/rgb()/non-string) + `dimmedTextColor` — the one hex check reused by `tileConfig`, `pageOptions`, the settings route, and the appearance UI | ✅ `unit/shared.color` |
 | T26 | `composePorts.js` `uniqueHostPorts` — de-dupe + numeric sort + protocol-normalise of published host ports, shared by the panel-wide strip and each stack's summary chips | ✅ `unit/shared.composePorts` |
 | T27 | A `link` tile can optionally attach an integration ("Include integration data" in the tile modal), carrying the same `config.views`/`moreIntegrationIds` a widget tile does; `integration_id` is validated when given (400 on a dangling id) and clearable via `PATCH` | ✅ `api/tiles` |
-| T28 | A `link` tile with an attached integration can't also be `open_mode: iframe` — forced back to `newtab` (the integration data fills the tile body, no room for an embed) | ✅ `api/tiles` |
+| T28 | The `0003_iframe_own_type` migration promotes a pre-upgrade `link`+`open_mode:iframe` row to `type: iframe`, moving its `url` column into `config.url` and resetting `open_mode`; the YAML importer applies the same upgrade to an old-shaped exported doc on import | ✅ `unit/db.migrations` · `api/config` |
 | T29 | `autoLinkTileHeight`: a combined link+integration tile's single non-scrollable view (`stats`/`nowplaying`/`calendar`) is bumped to the no-scroll minimum height (never shrunk below whatever was already picked); a scrollable view (`queue`/`list`) or an unknown type (integration not polled yet) leaves the height alone — wired in `TileModal.jsx`'s submit for a single selected (or default) view only, so a `queue`/`list` — a download queue, "recently imported" — keeps scrolling as intended | ✅ `unit/shared.misc` |
 | T30 | `bookmarks` sanitizer: each link's `column` is clamped to 1-4 independent of the current `columns` count (so lowering columns and raising it back doesn't lose an assignment); missing/invalid values default to 1 | ✅ `unit/shared.tileConfig` |
 

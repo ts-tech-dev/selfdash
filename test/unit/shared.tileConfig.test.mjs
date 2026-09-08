@@ -34,11 +34,11 @@ test('TILE_TYPES / PANEL_TYPES membership', () => {
     assert.ok(TILE_TYPES.has(t), `${t} is a tile type`);
   }
   assert.ok(!TILE_TYPES.has('bogus'));
-  assert.ok(PANEL_TYPES.has('clock') && !PANEL_TYPES.has('link') && !PANEL_TYPES.has('widget'));
+  assert.ok(PANEL_TYPES.has('clock') && PANEL_TYPES.has('iframe') && !PANEL_TYPES.has('link') && !PANEL_TYPES.has('widget'));
 });
 
-test('normalizeOpenMode: whitelist with newtab fallback', () => {
-  assert.equal(normalizeOpenMode('iframe'), 'iframe');
+test('normalizeOpenMode: whitelist with newtab fallback (iframe is no longer a link open_mode)', () => {
+  assert.equal(normalizeOpenMode('iframe'), 'newtab');
   assert.equal(normalizeOpenMode('same'), 'same');
   assert.equal(normalizeOpenMode('nonsense'), 'newtab');
   assert.equal(normalizeOpenMode(undefined), 'newtab');
@@ -70,6 +70,14 @@ test('buildIframeConfig: validates aspect ratio and clamps height', () => {
 test('buildIframeConfig: drops unknown sandbox tokens, keeps valid ones', () => {
   assert.equal(buildIframeConfig({ sandbox: 'allow-scripts allow-evil allow-forms' }).sandbox, 'allow-scripts allow-forms');
   assert.equal(buildIframeConfig({ sandbox: 'all-bogus' }).sandbox, 'allow-scripts allow-same-origin allow-forms allow-popups');
+});
+
+test('sanitizeTileConfig iframe: keeps url, fills sizing/sandbox defaults', () => {
+  const c = sanitizeTileConfig('iframe', { url: 'https://grafana.local', aspectRatio: '4/3' });
+  assert.equal(c.url, 'https://grafana.local');
+  assert.equal(c.aspectRatio, '4/3');
+  assert.equal(c.sizing, 'aspect');
+  assert.equal(c.sandbox, 'allow-scripts allow-same-origin allow-forms allow-popups');
 });
 
 test('sanitizeTileConfig clock: coerces + fills defaults', () => {

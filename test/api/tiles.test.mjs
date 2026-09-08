@@ -36,11 +36,19 @@ describe('tiles API', () => {
     assert.equal(r.body.config.showSeconds, true);
   });
 
-  it('iframe open_mode builds an iframe config block', async () => {
-    const r = await create({ type: 'link', url: 'https://grafana.local', open_mode: 'iframe', config: { aspectRatio: '4/3' } });
-    assert.equal(r.body.open_mode, 'iframe');
+  it('creates an iframe tile: url required, embed config sanitized, no top-level url', async () => {
+    const r = await create({ type: 'iframe', config: { url: 'https://grafana.local', aspectRatio: '4/3' } });
+    assert.equal(r.status, 201);
+    assert.equal(r.body.type, 'iframe');
+    assert.equal(r.body.url, null);
+    assert.equal(r.body.config.url, 'https://grafana.local');
     assert.equal(r.body.config.aspectRatio, '4/3');
     assert.equal(r.body.config.sandbox, 'allow-scripts allow-same-origin allow-forms allow-popups');
+  });
+
+  it('rejects an iframe tile with no / bad embed url', async () => {
+    assert.equal((await create({ type: 'iframe', title: 'x' })).status, 400);
+    assert.equal((await create({ type: 'iframe', config: { url: 'ftp://x' } })).status, 400);
   });
 
   it('widget tile requires a real integration_id', async () => {
@@ -111,9 +119,8 @@ describe('tiles API', () => {
     assert.equal(cleared.body.integration_id, null);
   });
 
-  it('a link tile with an attached integration forces open_mode away from iframe', async () => {
-    const a = (await s.request('/api/integrations', { method: 'POST', body: { key: 'gluetun', name: 'NoIframe', config: { url: 'http://c:1' } } })).body;
-    const r = await create({ type: 'link', url: 'https://x.y', integration_id: a.id, open_mode: 'iframe' });
+  it('a link tile can no longer set open_mode to iframe (falls back to newtab; iframe is its own tile type now)', async () => {
+    const r = await create({ type: 'link', url: 'https://x.y', open_mode: 'iframe' });
     assert.equal(r.status, 201);
     assert.equal(r.body.open_mode, 'newtab');
   });

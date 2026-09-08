@@ -46,7 +46,12 @@ export function TileGrid({ page }) {
     setCollapsed(loadSet(collapsedKey(page.id)));
   }, [page.id]);
 
-  const healthUrls = tiles.value.filter((tl) => tl.url).map((tl) => tl.url).join(',');
+  // Iframe tiles keep their embed target in config.url, not the url column (see
+  // TileCard.jsx's urlHealth) — same as every other panel type's target URL.
+  const healthUrls = tiles.value
+    .map((tl) => (tl.type === 'iframe' ? tl.config?.url : tl.url))
+    .filter(Boolean)
+    .join(',');
   useEffect(() => {
     if (!healthUrls) return undefined;
     const urls = healthUrls.split(',');

@@ -1,7 +1,9 @@
-// Registry of built-in "panel" tile types (everything that isn't link / widget /
-// iframe). Each entry drives both the Add/Edit modal (label, category, config
-// fields) and the rendered tile body (Component).
+// Registry of built-in "panel" tile types (everything that isn't link / widget).
+// Each entry drives both the Add/Edit modal (label, category, config fields) and
+// the rendered tile body (Component).
 
+import { IframeTile } from './IframeTile.jsx';
+import { IframeConfig } from './IframeConfig.jsx';
 import { ClockTile } from './ClockTile.jsx';
 import { SearchTile } from './SearchTile.jsx';
 import { NotesTile } from './NotesTile.jsx';
@@ -16,6 +18,24 @@ import { CustomApiTile } from './CustomApiTile.jsx';
 import { CustomApiConfig } from './CustomApiConfig.jsx';
 
 export const TILE_REGISTRY = {
+  iframe: {
+    label: 'Embedded page (iframe)',
+    category: 'Embed',
+    defaults: {
+      w: 3,
+      h: 2,
+      config: {
+        url: '',
+        sizing: 'aspect',
+        aspectRatio: '16/9',
+        height: 400,
+        sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups',
+      },
+    },
+    ConfigForm: IframeConfig,
+    Component: IframeTile,
+  },
+
   clock: {
     label: 'Clock',
     category: 'Info',

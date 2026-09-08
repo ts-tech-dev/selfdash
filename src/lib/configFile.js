@@ -101,7 +101,9 @@ export function buildConfigDoc(db, crypto, registry) {
             if (refs.length) cfg.moreIntegrationIds = refs;
             else delete cfg.moreIntegrationIds;
           }
-          if (t.type !== 'widget') {
+          // Neither a widget nor an iframe tile uses url/icon/description/open_mode —
+          // an iframe's embed target lives in config.url like every other panel type.
+          if (t.type !== 'widget' && t.type !== 'iframe') {
             if (t.url) out.url = t.url;
             if (t.icon) out.icon = t.icon;
             if (t.description) out.description = t.description;
@@ -206,11 +208,16 @@ export function importConfigDoc(app, doc, { includeSettings = true } = {}) {
       const pageId = pageInfo.lastInsertRowid;
 
       (Array.isArray(p.tiles) ? p.tiles : []).forEach((t, ti) => {
-        const type = TILE_TYPES.has(t.type) ? t.type : 'link';
+        // Pre-0.5 exports stored an iframe embed as a link tile's open_mode; iframe
+        // is now its own tile type with the embed URL living in config.url — upgrade
+        // an old-shaped doc on the way in rather than silently downgrading it to a
+        // plain newtab link.
+        const legacyIframe = t.type === 'link' && t.open_mode === 'iframe';
+        const type = TILE_TYPES.has(t.type) ? (legacyIframe ? 'iframe' : t.type) : 'link';
         const body = {
           type,
-          config: resolveVars(t.config || {}, unresolved),
-          url: t.url,
+          config: resolveVars(legacyIframe ? { ...(t.config || {}), url: t.url } : t.config || {}, unresolved),
+          url: legacyIframe ? undefined : t.url,
           open_mode: t.open_mode,
         };
         if (type === 'widget' || t.integration) {
@@ -239,8 +246,8 @@ export function importConfigDoc(app, doc, { includeSettings = true } = {}) {
           type,
           t.title || null,
           f.url,
-          type === 'widget' ? null : t.icon || null,
-          type === 'widget' ? null : t.description || null,
+          type === 'widget' || type === 'iframe' ? null : t.icon || null,
+          type === 'widget' || type === 'iframe' ? null : t.description || null,
           f.open_mode,
           f.integration_id,
           clampInt(t.x ?? 0, 0, 11),

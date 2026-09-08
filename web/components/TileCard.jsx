@@ -97,7 +97,7 @@ export function TileCard({
     'tile',
     panel ? 'tile-panel-card' : '',
     tile.type === 'widget' ? 'tile-widget' : '',
-    tile.open_mode === 'iframe' ? 'tile-iframe' : '',
+    tile.type === 'iframe' ? 'tile-iframe' : '',
     movable ? 'tile-movable' : '',
     dragging ? 'tile-dragging' : '',
   ]
@@ -134,6 +134,7 @@ export function TileCard({
     }
     return (
       <div {...rootProps}>
+        {tile.type === 'iframe' && <HealthDot {...urlHealth(tile.config?.url)} />}
         <div class="tile-toolbar">
           {dragMark}
           {!hideTitle && <span class="tile-toolbar-title">{tile.title || panel.label}</span>}
@@ -183,36 +184,6 @@ export function TileCard({
         </a>
         <WidgetTile tile={tile} />
         {editButton && <div class="tile-actions">{editButton}</div>}
-        {resizeHandle}
-      </div>
-    );
-  }
-
-  if (tile.open_mode === 'iframe') {
-    const cfg = tile.config || {};
-    const iframeStyle =
-      cfg.sizing === 'height'
-        ? { height: `${cfg.height || 400}px`, aspectRatio: 'auto' }
-        : { aspectRatio: cfg.aspectRatio || '16/9', height: 'auto' };
-
-    return (
-      <div {...rootProps}>
-        <HealthDot {...urlHealth(tile.url)} />
-        <div class="tile-toolbar">
-          {dragMark}
-          {!hideTitle && <span class="tile-toolbar-title">{tile.title || tile.url}</span>}
-          {editButton && <div class="tile-toolbar-actions">{editButton}</div>}
-        </div>
-        <div class="tile-iframe-scroll">
-          <iframe
-            class="tile-iframe-embed"
-            src={tile.url}
-            title={tile.title || tile.url}
-            sandbox={cfg.sandbox}
-            loading="lazy"
-            style={iframeStyle}
-          />
-        </div>
         {resizeHandle}
       </div>
     );

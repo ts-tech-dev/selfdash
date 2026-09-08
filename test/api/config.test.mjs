@@ -142,6 +142,70 @@ describe('config export / import (YAML)', () => {
     assert.deepEqual(linkAfter.config.views, ['status']);
   });
 
+  it('export/import round-trips an iframe tile (embed url lives in config.url, not the url column)', async () => {
+    const page = (await s.request('/api/pages')).body[0];
+    await s.request(`/api/pages/${page.id}/tiles`, {
+      method: 'POST',
+      body: { type: 'iframe', title: 'Grafana', config: { url: 'https://grafana.local', aspectRatio: '4/3' } },
+    });
+
+    const doc = parseYaml(await (await fetch(`${s.base}/api/config/export`)).text());
+    const tileDoc = doc.pages.flatMap((p) => p.tiles).find((t) => t.type === 'iframe');
+    assert.ok(tileDoc, 'exported doc has the iframe tile');
+    assert.equal(tileDoc.url, undefined, 'iframe tiles do not export a top-level url');
+    assert.equal(tileDoc.config.url, 'https://grafana.local');
+    assert.equal(tileDoc.config.aspectRatio, '4/3');
+
+    const importRes = await fetch(`${s.base}/api/config/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/yaml' },
+      body: stringifyYaml(doc),
+    });
+    assert.equal(importRes.status, 200);
+
+    const pageAfter = (await s.request('/api/pages')).body[0];
+    const tilesAfter = (await s.request(`/api/pages/${pageAfter.id}/tiles`)).body;
+    const iframeAfter = tilesAfter.find((t) => t.type === 'iframe');
+    assert.ok(iframeAfter, 'iframe tile survived the reimport');
+    assert.equal(iframeAfter.url, null);
+    assert.equal(iframeAfter.config.url, 'https://grafana.local');
+  });
+
+  it('importing a pre-0.5 config (iframe embed as a link tile\'s open_mode) upgrades it to the iframe type', async () => {
+    const legacyYaml = [
+      'version: 1',
+      'pages:',
+      '  - name: Legacy',
+      '    slug: legacy',
+      '    tiles:',
+      '      - type: link',
+      '        title: Old Embed',
+      '        url: https://old-grafana.local',
+      '        open_mode: iframe',
+      '        config:',
+      '          aspectRatio: "4/3"',
+      '          sandbox: allow-scripts',
+      '',
+    ].join('\n');
+
+    const res = await fetch(`${s.base}/api/config/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/yaml' },
+      body: legacyYaml,
+    });
+    assert.equal(res.status, 200);
+
+    const page = (await s.request('/api/pages')).body.find((p) => p.slug === 'legacy');
+    const tiles = (await s.request(`/api/pages/${page.id}/tiles`)).body;
+    assert.equal(tiles.length, 1);
+    assert.equal(tiles[0].type, 'iframe');
+    assert.equal(tiles[0].open_mode, 'newtab');
+    assert.equal(tiles[0].url, null);
+    assert.equal(tiles[0].config.url, 'https://old-grafana.local');
+    assert.equal(tiles[0].config.aspectRatio, '4/3');
+    assert.equal(tiles[0].config.sandbox, 'allow-scripts');
+  });
+
   it('POST /api/config/import?settings=0 leaves settings untouched', async () => {
     await s.request('/api/settings', { method: 'PATCH', body: { site_title: 'Keep Me' } });
     const yaml = 'version: 1\nsettings:\n  site_title: Should Not Apply\npages:\n  - name: Only\n    slug: only\n    tiles: []\n';

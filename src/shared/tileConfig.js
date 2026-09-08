@@ -14,15 +14,17 @@ const VALID_SANDBOX_TOKENS = new Set([
   'allow-top-navigation-by-user-activation',
 ]);
 
-// Every built-in info/data tile type, plus the three "core" ones.
+// Every built-in info/data tile type, plus the two "core" ones.
 export const TILE_TYPES = new Set([
-  'link', 'widget', 'iframe',
-  'clock', 'weather', 'notes', 'search', 'rss', 'calendar', 'bookmarks', 'customapi', 'resources',
+  'link', 'widget',
+  'iframe', 'clock', 'weather', 'notes', 'search', 'rss', 'calendar', 'bookmarks', 'customapi', 'resources',
 ]);
 
-// Types that render their own body and don't use url / integration_id.
+// Types that render their own body and don't use the top-level url / integration_id
+// columns (an iframe's embed target lives in config.url instead, like every other
+// panel type's target URL).
 export const PANEL_TYPES = new Set([
-  'clock', 'weather', 'notes', 'search', 'rss', 'calendar', 'bookmarks', 'customapi', 'resources',
+  'iframe', 'clock', 'weather', 'notes', 'search', 'rss', 'calendar', 'bookmarks', 'customapi', 'resources',
 ]);
 
 const str = (v, max = 2000) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -49,6 +51,7 @@ export function buildIframeConfig(raw) {
 }
 
 const PANEL_SANITIZERS = {
+  iframe: (c) => ({ url: str(c.url, 2000), ...buildIframeConfig(c) }),
   clock: (c) => ({
     format: oneOf(c.format, ['12h', '24h'], '24h'),
     showDate: c.showDate === undefined ? true : bool(c.showDate),
@@ -189,8 +192,7 @@ export function commonConfig(raw) {
   return out;
 }
 
-// Returns the sanitized config for a given tile type (excluding iframe, which the
-// route handles via buildIframeConfig on its own).
+// Returns the sanitized config for a given tile type.
 export function sanitizeTileConfig(type, raw) {
   const c = raw || {};
   const base = commonConfig(c);
@@ -200,7 +202,7 @@ export function sanitizeTileConfig(type, raw) {
 
 export { URL_RE };
 
-const OPEN_MODES = new Set(['newtab', 'same', 'iframe']);
+const OPEN_MODES = new Set(['newtab', 'same']);
 
 export function normalizeOpenMode(value) {
   return OPEN_MODES.has(value) ? value : 'newtab';
@@ -238,11 +240,20 @@ export function resolveTileFields(db, type, body, existing) {
     };
   }
 
+  // iframe: like every other panel type it renders its own body and stores no
+  // top-level url, but (unlike them) its embed target is required — an iframe
+  // pointed at nothing is useless, same as a link tile with no url.
+  if (type === 'iframe') {
+    const config = sanitizeTileConfig('iframe', rawConfig);
+    if (!URL_RE.test(config.url)) throw new Error('url is required and must start with http:// or https://');
+    return { url: null, open_mode: 'newtab', integration_id: null, config };
+  }
+
   if (PANEL_TYPES.has(type)) {
     return { url: null, open_mode: 'newtab', integration_id: null, config: sanitizeTileConfig(type, rawConfig) };
   }
 
-  // link (incl. iframe open mode)
+  // link
   let url = existing ? existing.url : null;
   if (body.url !== undefined) {
     if (!URL_RE.test(body.url)) throw new Error('url must start with http:// or https://');
@@ -262,15 +273,9 @@ export function resolveTileFields(db, type, body, existing) {
     }
   }
 
-  let open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : existing?.open_mode || 'newtab';
-  // An attached integration renders its data in the tile body — no room left for an
-  // iframe embed of the link itself, so fall back to a normal newtab link.
-  if (integrationId && open_mode === 'iframe') open_mode = 'newtab';
+  const open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : existing?.open_mode || 'newtab';
 
-  const config =
-    open_mode === 'iframe'
-      ? { ...buildIframeConfig(rawConfig), ...common }
-      : { ...(integrationId ? widgetConfig(db, rawConfig, integrationId) : {}), ...common };
+  const config = { ...(integrationId ? widgetConfig(db, rawConfig, integrationId) : {}), ...common };
 
   return { url, open_mode, integration_id: integrationId, config };
 }

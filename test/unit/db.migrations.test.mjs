@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { openDatabase } from '../../src/db/index.js';
 import { makeTmpDir } from '../helpers/tmpdir.mjs';
@@ -68,6 +68,30 @@ test('tiles.type CHECK constraint accepts panel types, rejects unknown', (t) => 
   assert.throws(() =>
     db.prepare('INSERT INTO tiles (page_id, type) VALUES (?, ?)').run(pageId, 'not-a-type')
   );
+});
+
+test('0003 migration: promotes a legacy link+iframe row to type=iframe, moving its url into config.url', (t) => {
+  const db = withDb(t);
+  const pageId = db.prepare('SELECT id FROM pages LIMIT 1').get().id;
+
+  // Insert a row in the pre-0003 shape (iframe embed = a link tile's open_mode,
+  // url on the column) and re-run the migration's own SQL directly against it —
+  // it already ran once (as a no-op) when openDatabase() built this db, so this
+  // isolates the promotion logic against data shaped like a pre-upgrade db.
+  const info = db
+    .prepare(`INSERT INTO tiles (page_id, type, url, open_mode, config_json) VALUES (?, 'link', ?, 'iframe', ?)`)
+    .run(pageId, 'https://grafana.local', JSON.stringify({ sizing: 'aspect', aspectRatio: '4/3', sandbox: 'allow-scripts' }));
+
+  db.exec(readFileSync(join(MIGRATIONS_DIR, '0003_iframe_own_type.sql'), 'utf8'));
+
+  const row = db.prepare('SELECT * FROM tiles WHERE id = ?').get(info.lastInsertRowid);
+  assert.equal(row.type, 'iframe');
+  assert.equal(row.open_mode, 'newtab');
+  assert.equal(row.url, null);
+  const cfg = JSON.parse(row.config_json);
+  assert.equal(cfg.url, 'https://grafana.local');
+  assert.equal(cfg.aspectRatio, '4/3');
+  assert.equal(cfg.sandbox, 'allow-scripts');
 });
 
 test('deleting a page cascades to its tiles', (t) => {
