@@ -6,6 +6,13 @@ import { fmtRate } from '../shared/format.js';
 // every other call needs it attached. The cookie is cached per URL and re-fetched once
 // on any RPC error (Deluge reports "not authenticated" inside a 200 body, not via HTTP
 // status, so there's no status code to branch on the way NPM's bearer-token retry does).
+//
+// Verified live (linuxserver/deluge): the web UI process starts out disconnected from its
+// daemon — after a restart, or on a install that's never been opened in a browser — until
+// something calls `web.connect`. A disconnected `web.update_ui` doesn't error, it just
+// returns `torrents: null`, which would otherwise look exactly like "no torrents" forever.
+// `updateUi` below checks `result.connected` and, if false, connects to the first
+// configured host (`web.get_hosts`) and retries once.
 
 const VIEWS = {
   queue: { label: 'Torrent queue', run: fetchQueue },
@@ -34,6 +41,7 @@ export default class DelugeIntegration extends BaseIntegration {
 const baseOf = (config) => config.url.replace(/\/+$/, '');
 const sessionCache = new Map(); // base -> cookie
 const inflight = new Map(); // base -> Promise<cookie>
+const connectInflight = new Map(); // base -> Promise<void>, dedupes concurrent web.connect calls
 
 let requestId = 1;
 
@@ -68,17 +76,46 @@ async function session(ctx) {
   return inflight.get(key);
 }
 
+async function ensureConnected(ctx) {
+  const key = baseOf(ctx.config);
+  if (!connectInflight.has(key)) {
+    connectInflight.set(
+      key,
+      (async () => {
+        const cookie = await session(ctx);
+        const { result: hosts } = await rpc(ctx, 'web.get_hosts', [], cookie);
+        const hostId = hosts?.[0]?.[0];
+        if (!hostId) throw new Error('Deluge web UI has no daemon host configured to connect to');
+        await rpc(ctx, 'web.connect', [hostId], cookie);
+      })().finally(() => connectInflight.delete(key))
+    );
+  }
+  return connectInflight.get(key);
+}
+
 async function updateUi(ctx) {
   const key = baseOf(ctx.config);
   const keys = ['name', 'state', 'progress', 'download_payload_rate', 'upload_payload_rate'];
-  try {
+
+  const run = async () => {
     const cookie = await session(ctx);
     return (await rpc(ctx, 'web.update_ui', [keys, {}], cookie)).result;
+  };
+
+  let result;
+  try {
+    result = await run();
   } catch {
     sessionCache.delete(key);
-    const cookie = await session(ctx);
-    return (await rpc(ctx, 'web.update_ui', [keys, {}], cookie)).result;
+    result = await run();
   }
+
+  if (result && result.connected === false) {
+    await ensureConnected(ctx);
+    result = await run();
+  }
+
+  return result;
 }
 
 async function fetchTorrents(ctx) {
