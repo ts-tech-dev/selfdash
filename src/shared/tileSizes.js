@@ -13,7 +13,7 @@ export function sizeKeyFromWH(w, h) {
 
 // View render types meant to scroll — an open-ended list (a download queue,
 // "recently imported", health issues, …). Left alone by autoLinkTileHeight below.
-export const SCROLLABLE_VIEW_TYPES = new Set(['queue', 'list']);
+export const SCROLLABLE_VIEW_TYPES = new Set(['queue', 'list', 'status']);
 export const MIN_HEIGHT_NO_SCROLL = 2;
 
 // A combined link+integration tile's icon/title header eats into the row height a

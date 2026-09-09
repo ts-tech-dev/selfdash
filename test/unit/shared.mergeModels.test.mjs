@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeCalendar, mergeListLike, mergeModel } from '../../src/shared/mergeModels.js';
+import { mergeCalendar, mergeListLike, mergeStatus, mergeModel } from '../../src/shared/mergeModels.js';
 
 const src = (source, type, items) => ({ source, model: { type, items } });
 
@@ -54,6 +54,34 @@ test('mergeCalendar: merges events, sorts by ts, keeps a source tag', () => {
       ['Late', 'Radarr'],
     ]
   );
+});
+
+test('mergeStatus: concatenates monitors and tags each with its source (existing detail is kept)', () => {
+  const merged = mergeModel('status', [
+    src('Uptime Kuma', 'status', [
+      { label: 'API', state: 'up' },
+      { label: 'DB', state: 'down', detail: '5m ago' },
+    ]),
+    src('Gatus', 'status', [{ label: 'CDN', state: 'warn' }]),
+  ]);
+  assert.equal(merged.type, 'status');
+  assert.deepEqual(
+    merged.items.map((i) => [i.label, i.state, i.detail]),
+    [
+      ['API', 'up', 'Uptime Kuma'],
+      ['DB', 'down', '5m ago · Uptime Kuma'],
+      ['CDN', 'warn', 'Gatus'],
+    ]
+  );
+});
+
+test('mergeStatus: skips sources whose model is missing or a different type', () => {
+  const merged = mergeStatus([
+    src('A', 'status', [{ label: 'keep', state: 'up' }]),
+    { source: 'B', model: null },
+    src('C', 'list', [{ title: 'x' }]),
+  ]);
+  assert.deepEqual(merged.items.map((i) => i.label), ['keep']);
 });
 
 test('mergeModel: stats/nowplaying and unknown types do not merge', () => {

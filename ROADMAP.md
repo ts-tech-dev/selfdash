@@ -1,11 +1,11 @@
 # selfdash — service integration roadmap
 
 Status: **all phases approved.** Phase 1 shipped in **v0.5.0**, Phase 2 in **v0.6.0**,
-Phase 3 in **v0.7.0**; Phases 4–6 pending.
+Phase 3 in **v0.7.0**, Phase 4 in **v0.8.0**; Phases 5–6 pending.
 
 Reference point: [gethomepage.dev](https://gethomepage.dev) service-widget catalog, filtered to
 what's actually common in self-hosting and to what fits selfdash's **read-only poller** +
-five `WidgetModel` shapes (`stats`, `nowplaying`, `queue`, `list`, `calendar`).
+six `WidgetModel` shapes (`stats`, `nowplaying`, `queue`, `list`, `calendar`, `status`).
 
 ## Shipped
 
@@ -30,6 +30,14 @@ goes through its single generic `/api/v2/cruddb` endpoint with defensive field f
 the README caveat, it's the least confidently sourced integration in the set. Tests:
 `test/unit/integrations.{transmission,deluge,nzbget,tdarr,whatsupdocker}.test.mjs`,
 TESTPLAN §3.6 I28–I32.)
+
+**v0.8.0 — Phase 4 (6):** Uptime Kuma · Gatus · Healthchecks · Grafana · Speedtest Tracker ·
+Scrutiny (shared enabler **E1**: new `status` WidgetModel `{label, state:'up'|'down'|'warn'|'paused',
+detail?}`, a `StatusView` dot-list renderer in `WidgetTile.jsx`, a `mergeStatus` concat rule, and
+`status` added to `SCROLLABLE_VIEW_TYPES`; Uptime Kuma/Gatus/Healthchecks share
+`mergeGroup: 'monitor'`. Tests: `test/unit/integrations.{uptimekuma,gatus,healthchecks,grafana,
+speedtest,scrutiny}.test.mjs`, `test/unit/shared.mergeModels.test.mjs`, TESTPLAN §3.2 T20/T20b +
+§3.6 I33–I38.)
 
 ## Ground rules for every new integration
 
@@ -100,7 +108,7 @@ Rounds out the `download` merge group and adds the transcode-queue apps.
 
 ---
 
-## Phase 4 — Monitoring & status boards
+## Phase 4 — Monitoring & status boards ✅ (v0.8.0)
 
 Needs shared enabler **E1** (`status` model). After that these are quick.
 

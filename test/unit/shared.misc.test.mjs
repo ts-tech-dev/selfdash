@@ -23,9 +23,10 @@ test('autoLinkTileHeight: bumps a compact view (stats/nowplaying/calendar) up to
   assert.equal(autoLinkTileHeight(3, 'stats'), 3, 'never shrinks an already-taller pick');
 });
 
-test('autoLinkTileHeight: leaves a scrollable view (queue/list) and an unknown type alone', () => {
+test('autoLinkTileHeight: leaves a scrollable view (queue/list/status) and an unknown type alone', () => {
   assert.equal(autoLinkTileHeight(1, 'queue'), 1, 'a download queue is meant to scroll');
   assert.equal(autoLinkTileHeight(1, 'list'), 1, '"recently imported" etc. is meant to scroll');
+  assert.equal(autoLinkTileHeight(1, 'status'), 1, 'a monitor board is meant to scroll');
   assert.equal(autoLinkTileHeight(1, null), 1, 'integration not polled yet — type unknown, leave as chosen');
   assert.equal(autoLinkTileHeight(1, undefined), 1);
 });

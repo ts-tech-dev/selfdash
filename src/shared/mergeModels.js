@@ -29,10 +29,25 @@ export function mergeListLike(type, perSource) {
   return { type, items };
 }
 
+// A merged status board — every monitor from every source in one list. Each row's
+// `detail` gains the source name (same convention as mergeListLike) so a combined
+// "monitor" tile (Uptime Kuma + Gatus, say) can still tell rows apart.
+export function mergeStatus(perSource) {
+  const items = [];
+  for (const { source, model } of perSource) {
+    if (!model || model.type !== 'status') continue;
+    for (const it of model.items || []) {
+      items.push({ ...it, detail: it.detail ? `${it.detail} · ${source}` : source });
+    }
+  }
+  return { type: 'status', items };
+}
+
 // Which view types can meaningfully merge. stats/nowplaying don't collapse into one
 // number/card, so those fall back to a section per source instead (handled by the caller).
 export function mergeModel(type, perSource) {
   if (type === 'calendar') return mergeCalendar(perSource);
   if (type === 'list' || type === 'queue') return mergeListLike(type, perSource);
+  if (type === 'status') return mergeStatus(perSource);
   return null;
 }

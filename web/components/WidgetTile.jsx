@@ -74,6 +74,23 @@ function ListView({ items }) {
   );
 }
 
+const STATUS_COLOR = { up: '#3fb950', down: '#f85149', warn: '#d29922', paused: '#8b949e' };
+
+function StatusView({ items }) {
+  if (!items.length) return <p class="widget-empty">No monitors</p>;
+  return (
+    <ul class="widget-status">
+      {items.map((it, i) => (
+        <li key={i} class="widget-status-row">
+          <span class="widget-status-dot" style={{ background: STATUS_COLOR[it.state] || STATUS_COLOR.paused }} />
+          <span class="widget-status-label">{it.label}</span>
+          {it.detail && <span class="widget-status-detail">{it.detail}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MAX_EVENTS_PER_CELL = 3;
 
@@ -260,6 +277,7 @@ const RENDERERS = {
   queue: QueueView,
   list: ListView,
   calendar: CalendarView,
+  status: StatusView,
 };
 
 function renderModel(model) {
