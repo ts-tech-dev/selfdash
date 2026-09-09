@@ -346,13 +346,16 @@ Twenty-nine integrations ship out of the box (`src/integrations/*.integration.js
 - **Other self-hosted** — Immich (photos), Mealie (recipes), Gluetun (VPN control server), Bookdrop (upcoming audiobook releases)
 
 They were built and validated against documented API shapes plus a mock-HTTP-server test suite;
-qBittorrent, SABnzbd, Radarr, Sonarr, Plex, and Audiobookshelf have also been confirmed against
-live instances. Treat the rest as a solid first draft, not as pre-verified against every
+qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf, and Tdarr have also been confirmed
+against live instances. Treat the rest as a solid first draft, not as pre-verified against every
 real-world version/config quirk — endpoint paths and field names in particular vary by app
-version. Tdarr in particular has no documented public REST API (everything goes through one
-generic CRUD endpoint over its internal collections), so its field-name assumptions are the
-least confidently sourced in the set — expect to patch the collection field names against a
-real instance before relying on it.
+version. Tdarr has no documented public REST API — everything goes through one generic CRUD
+endpoint (`POST /api/v2/cruddb`) over its internal LokiJS collections, plus `GET /api/v2/get-nodes`
+for live worker state — so its shape was reverse-engineered against a real `haveagitgat/tdarr`
+container rather than docs: `cruddb`'s `mode` only accepts
+`getById`/`getByIndex`/`getAll`/`insert`/`update`/`removeOne`/`removeAll`/`getCount` (no `find`),
+and `TranscodeDecisionMaker` values are Title Case (`"Queued"`, `"Transcode error"`, `"Transcode
+success"`, `"Not required"`), not lowercase.
 
 ## Theming
 
@@ -424,8 +427,8 @@ design (no per-integration process, no unbounded cache growth).
 Actively developed — see [`TESTPLAN.md`](TESTPLAN.md) for the full case-by-case catalog. Every
 change ships behind the automated suite (unit + API + a headless-browser smoke test) plus a
 manual click-through checklist for anything touching layout or interaction; nothing merges
-without both. Six of the twenty-nine built-in integrations (qBittorrent, SABnzbd, Radarr, Sonarr,
-Plex, Audiobookshelf) have also been confirmed against live instances — the rest are a solid
+without both. Seven of the twenty-nine built-in integrations (qBittorrent, SABnzbd, Radarr, Sonarr,
+Plex, Audiobookshelf, Tdarr) have also been confirmed against live instances — the rest are a solid
 first draft built from documented API shapes, not yet exercised against every real-world
 version/config quirk.
 

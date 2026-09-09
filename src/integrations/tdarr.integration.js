@@ -2,9 +2,20 @@ import { BaseIntegration } from './_base.js';
 import { runAllViews } from './_views.js';
 
 // Tdarr has no per-resource REST API — everything goes through one generic CRUD
-// endpoint (`/api/v2/cruddb`) over its internal LokiJS collections. No auth by default.
-// Field names below come from the shipped Statistics/Node/File collections; any that
-// have moved between Tdarr versions fall back to 0/empty rather than throwing.
+// endpoint (`/api/v2/cruddb`) over its internal LokiJS collections, plus a couple of
+// dedicated GET endpoints. No auth by default. Verified live against a fresh
+// haveagitgat/tdarr container (server 2.86.01): `cruddb` only accepts the modes
+// getById/getByIndex/getAll/insert/update/removeOne/removeAll/getCount — "find" 400s.
+// StatisticsJSONDB's table0Count/table2Count are the server's own Queued/Transcode-error
+// counts (they back the "Transcode Queue"/"Transcode: Error" tabs in the web UI) — using
+// them instead of counting FileJSONDB rows keeps the "Queued"/"Errored" stats consistent
+// with what Tdarr itself considers "current" regardless of poll timing. Live worker
+// occupancy isn't in NodeJSONDB (its cruddb docs carry config, not runtime state) — it's
+// on GET /api/v2/get-nodes, keyed by node id, each with `workers` (an object keyed by
+// worker id, present only while that worker is running) and `workerLimits` (its configured
+// slot counts). TranscodeDecisionMaker values are exactly "Queued" / "Transcode error" /
+// "Transcode success" / "Not required" (Title Case, confirmed from the shipped web UI
+// bundle) — not the lowercase guesses an earlier draft of this integration used.
 
 const VIEWS = {
   stats: { label: 'Transcode stats', run: fetchStats },
@@ -42,35 +53,41 @@ async function fetchStatistics(ctx) {
   return stats || {};
 }
 
-async function fetchNodes(ctx) {
-  const nodes = await cruddb(ctx, { collection: 'NodeJSONDB', mode: 'find' });
+async function fetchNodes({ config, http }) {
+  const nodes = await http.fetchJson(`${baseOf(config)}/api/v2/get-nodes`);
   return asList(nodes);
 }
 
 async function fetchFiles(ctx) {
-  const files = await cruddb(ctx, { collection: 'FileJSONDB', mode: 'find' });
+  const files = await cruddb(ctx, { collection: 'FileJSONDB', mode: 'getAll' });
   return asList(files);
 }
 
 async function fetchStats(ctx) {
   const [stats, nodes] = await Promise.all([fetchStatistics(ctx), fetchNodes(ctx)]);
-  const workers = nodes.flatMap((n) => asList(n.workers));
-  const busy = workers.filter((w) => w.status === 'transcoding' || w.status === 'healthchecking').length;
+  let busy = 0;
+  let capacity = 0;
+  for (const n of nodes) {
+    busy += Object.keys(n.workers || {}).length;
+    const wl = n.workerLimits || {};
+    capacity += (Number(wl.transcodecpu) || 0) + (Number(wl.transcodegpu) || 0) + (Number(wl.healthcheckcpu) || 0) + (Number(wl.healthcheckgpu) || 0);
+  }
 
   return {
     type: 'stats',
     items: [
+      { label: 'Queued', value: Number(stats.table0Count) || 0 },
       { label: 'Transcoded', value: Number(stats.totalTranscodeCount) || 0 },
-      { label: 'Health checks', value: Number(stats.totalHealthCheckCount) || 0 },
+      { label: 'Errored', value: Number(stats.table2Count) || 0 },
       { label: 'Space saved', value: `${(Number(stats.sizeDiff) || 0).toFixed(1)} GB` },
-      { label: 'Workers busy', value: `${busy}/${workers.length}` },
+      { label: 'Workers busy', value: `${busy}/${capacity}` },
     ],
   };
 }
 
 async function fetchStaged(ctx) {
   const files = await fetchFiles(ctx);
-  const rows = files.filter((f) => f.TranscodeDecisionMaker === 'queued' || f.TranscodeDecisionMaker === 'error');
+  const rows = files.filter((f) => f.TranscodeDecisionMaker === 'Queued' || f.TranscodeDecisionMaker === 'Transcode error');
   return {
     type: 'list',
     items: rows.map((f) => ({
