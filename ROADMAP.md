@@ -1,6 +1,6 @@
 # selfdash — service integration roadmap
 
-Status: **all phases approved.** Phase 1 shipped in **v0.5.0**; Phases 2–6 pending.
+Status: **all phases approved.** Phase 1 shipped in **v0.5.0**, Phase 2 in **v0.6.0**; Phases 3–6 pending.
 
 Reference point: [gethomepage.dev](https://gethomepage.dev) service-widget catalog, filtered to
 what's actually common in self-hosting and to what fits selfdash's **read-only poller** +
@@ -15,6 +15,11 @@ Tautulli · Audiobookshelf · Overseerr · Immich · Mealie · Gluetun · Bookdr
 (shared bases `_embyBase.js` + `_seerrBase.js`; Overseerr/Jellyseerr now `mergeGroup: 'requests'`;
 Lidarr/Bazarr join `mergeGroup: 'arr'`. Tests: `test/unit/integrations.{jellyfin,lidarr,bazarr,jellyseerr}.test.mjs`,
 TESTPLAN §3.6 I19–I22.)
+
+**v0.6.0 — Phase 2 (5):** Pi-hole · AdGuard Home · Portainer · Traefik · Nginx Proxy Manager
+(new `mergeGroup: 'dns'` on Pi-hole + AdGuard; Pi-hole tries v6 API then falls back to v5;
+NPM caches its bearer token with in-flight dedup + 401 re-auth. Tests:
+`test/unit/integrations.{pihole,adguard,portainer,traefik,npm}.test.mjs`, TESTPLAN §3.6 I23–I27.)
 
 ## Ground rules for every new integration
 
@@ -53,7 +58,7 @@ Highest demand, lowest risk — most of these are near-copies of code we already
 
 ---
 
-## Phase 2 — Network, DNS & reverse proxies
+## Phase 2 — Network, DNS & reverse proxies ✅ (v0.6.0)
 
 Ubiquitous in home labs; all clean `stats` + `list`, all read-only.
 

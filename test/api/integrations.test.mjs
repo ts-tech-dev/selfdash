@@ -12,7 +12,7 @@ describe('integrations API', () => {
     const r = await s.request('/api/integrations/available');
     assert.equal(r.status, 200);
     assert.ok(r.body.length >= 10, `expected the shipped integration catalog, got ${r.body.length}`);
-    for (const key of ['gluetun', 'sonarr', 'radarr', 'qbittorrent', 'plex', 'jellyfin', 'emby', 'bazarr', 'lidarr', 'jellyseerr']) {
+    for (const key of ['gluetun', 'sonarr', 'radarr', 'qbittorrent', 'plex', 'jellyfin', 'emby', 'bazarr', 'lidarr', 'jellyseerr', 'pihole', 'adguard', 'portainer', 'traefik', 'npm']) {
       const found = r.body.find((i) => i.key === key);
       assert.ok(found, `catalog includes ${key}`);
       assert.ok(Array.isArray(found.configSchema.fields), `${key} has configSchema.fields`);
@@ -47,11 +47,17 @@ describe('integrations API', () => {
     assert.equal(byKey.bazarr.mergeGroup, 'arr');
     assert.equal(byKey.overseerr.mergeGroup, 'requests');
     assert.equal(byKey.jellyseerr.mergeGroup, 'requests');
+    // Phase 2: Pi-hole + AdGuard share a `dns` group so their stats can combine.
+    assert.equal(byKey.pihole.mergeGroup, 'dns');
+    assert.equal(byKey.adguard.mergeGroup, 'dns');
     // integrations with no explicit group fall back to their own key (merge only with same type)
     assert.equal(byKey.gluetun.mergeGroup, 'gluetun');
     assert.equal(byKey.plex.mergeGroup, 'plex');
     assert.equal(byKey.jellyfin.mergeGroup, 'jellyfin');
     assert.equal(byKey.emby.mergeGroup, 'emby');
+    assert.equal(byKey.portainer.mergeGroup, 'portainer');
+    assert.equal(byKey.traefik.mergeGroup, 'traefik');
+    assert.equal(byKey.npm.mergeGroup, 'npm');
     // No integration schema carries the old "Show" field any more — it moved to the tile.
     for (const typeDef of r.body) {
       assert.ok(!typeDef.configSchema.fields.some((f) => f.name === 'views'), `${typeDef.key}: no views field in config schema`);
