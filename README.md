@@ -345,21 +345,34 @@ Twenty-nine integrations ship out of the box (`src/integrations/*.integration.js
 - **Transcoding / container hygiene** — Tdarr, What's Up Docker
 - **Other self-hosted** — Immich (photos), Mealie (recipes), Gluetun (VPN control server), Bookdrop (upcoming audiobook releases)
 
-They were built and validated against documented API shapes plus a mock-HTTP-server test suite;
-qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf, Tdarr, Deluge, and NZBGet have also
-been confirmed against live instances. Treat the rest as a solid first draft, not as
-pre-verified against every real-world version/config quirk — endpoint paths and field names in
-particular vary by app version. Tdarr has no documented public REST API — everything goes
-through one generic CRUD endpoint (`POST /api/v2/cruddb`) over its internal LokiJS collections,
-plus `GET /api/v2/get-nodes` for live worker state — so its shape was reverse-engineered against
-a real `haveagitgat/tdarr` container rather than docs: `cruddb`'s `mode` only accepts
-`getById`/`getByIndex`/`getAll`/`insert`/`update`/`removeOne`/`removeAll`/`getCount` (no `find`),
-and `TranscodeDecisionMaker` values are Title Case (`"Queued"`, `"Transcode error"`, `"Transcode
-success"`, `"Not required"`), not lowercase. Deluge has a live-verified gotcha too: its web UI
-process starts out **disconnected** from the daemon (after a restart, or on an install that's
-never been opened in a browser) — `web.update_ui` doesn't error in that state, it just returns
-`torrents: null`, which would otherwise look exactly like "no torrents" forever. The integration
-detects `connected: false` and calls `web.connect` on the first configured host itself.
+They were built and validated against documented API shapes plus a mock-HTTP-server test suite.
+Twenty-one of the twenty-nine — qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf,
+Transmission, Deluge, NZBGet, Tdarr, Lidarr, Bazarr, Jellyfin, Emby, Jellyseerr, Pi-hole,
+AdGuard Home, Portainer, Traefik, Nginx Proxy Manager, and What's Up Docker — have also been
+confirmed against live instances (spun up with `docker run`, driven through real setup wizards
+and real data, then torn down). The rest (Readarr, Prowlarr, Overseerr, Immich, Mealie, Gluetun,
+Bookdrop) are a solid first draft built from documented API shapes, not yet exercised live.
+Endpoint paths and field names vary by app version, so treat any integration here as "correct
+against the version tested," not as guaranteed forever.
+
+Two integrations had real, live-verified gotchas worth knowing about:
+
+- **Tdarr** has no documented public REST API — everything goes through one generic CRUD
+  endpoint (`POST /api/v2/cruddb`) over its internal LokiJS collections, plus
+  `GET /api/v2/get-nodes` for live worker state — so its shape was reverse-engineered against a
+  real `haveagitgat/tdarr` container rather than docs: `cruddb`'s `mode` only accepts
+  `getById`/`getByIndex`/`getAll`/`insert`/`update`/`removeOne`/`removeAll`/`getCount` (no
+  `find`), and `TranscodeDecisionMaker` values are Title Case (`"Queued"`, `"Transcode error"`,
+  `"Transcode success"`, `"Not required"`), not lowercase.
+- **Deluge**'s web UI process starts out **disconnected** from the daemon (after a restart, or
+  on an install that's never been opened in a browser) — `web.update_ui` doesn't error in that
+  state, it just returns `torrents: null`, which would otherwise look exactly like "no torrents"
+  forever. The integration detects `connected: false` and calls `web.connect` on the first
+  configured host itself.
+
+**Portainer**'s Docker-proxy fallback (`GET /api/endpoints/{id}/docker/containers/json`) turned
+out to be the *common* path, not a rare edge case — the snapshot's `DockerSnapshotRaw.Containers`
+was absent on the version tested (2.45.0), so every `down`-view poll exercises that fallback.
 
 ## Theming
 
@@ -431,10 +444,10 @@ design (no per-integration process, no unbounded cache growth).
 Actively developed — see [`TESTPLAN.md`](TESTPLAN.md) for the full case-by-case catalog. Every
 change ships behind the automated suite (unit + API + a headless-browser smoke test) plus a
 manual click-through checklist for anything touching layout or interaction; nothing merges
-without both. Nine of the twenty-nine built-in integrations (qBittorrent, SABnzbd, Radarr, Sonarr,
-Plex, Audiobookshelf, Tdarr, Deluge, NZBGet) have also been confirmed against live instances — the
-rest are a solid first draft built from documented API shapes, not yet exercised against every
-real-world version/config quirk.
+without both. Twenty-one of the twenty-nine built-in integrations have also been confirmed
+against live instances (see the Integrations section above for the full list and two
+live-verified gotchas) — the rest are a solid first draft built from documented API shapes, not
+yet exercised against every real-world version/config quirk.
 
 There is intentionally **no auth in v1** (see Architecture below) — put it behind a reverse
 proxy or VPN if it's reachable from anywhere you don't fully trust.
