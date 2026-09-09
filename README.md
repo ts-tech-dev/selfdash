@@ -336,27 +336,32 @@ The six `WidgetModel` shapes, and what each `items[]` entry looks like:
 | `calendar` | `{ ts, title, subtitle? }` (`ts` = epoch ms; bucketed by local day, rendered one month at a time with ‹ › navigation) | Radarr / Sonarr / Lidarr release calendar |
 | `status` | `{ label, state: 'up'\|'down'\|'warn'\|'paused', detail? }` (rendered as a colored dot per row) | Uptime Kuma / Gatus / Healthchecks monitor boards, Scrutiny drive health |
 
-Thirty-five integrations ship out of the box (`src/integrations/*.integration.js`):
+Forty integrations ship out of the box (`src/integrations/*.integration.js`):
 
 - **Downloads** — qBittorrent, SABnzbd, Transmission, Deluge, NZBGet
 - **Media servers** — Plex, Jellyfin, Emby, Tautulli, Audiobookshelf
 - **Media management / *arr** — Radarr, Sonarr, Lidarr, Readarr, Prowlarr, Bazarr (subtitles)
 - **Monitoring / status** — Uptime Kuma, Gatus, Healthchecks, Grafana, Speedtest Tracker, Scrutiny (SMART disk health)
 - **Requests** — Overseerr, Jellyseerr (also works with seerr)
-- **Network / infra** — Pi-hole, AdGuard Home, Portainer, Traefik, Nginx Proxy Manager
+- **Network / infra** — Pi-hole, AdGuard Home, Portainer, Traefik, Nginx Proxy Manager, UniFi Network
+- **NAS / virtualization / home automation** — Proxmox VE, TrueNAS, Home Assistant, Nextcloud
 - **Transcoding / container hygiene** — Tdarr, What's Up Docker
 - **Other self-hosted** — Immich (photos), Mealie (recipes), Gluetun (VPN control server), Bookdrop (upcoming audiobook releases)
 
 They were built and validated against documented API shapes plus a mock-HTTP-server test suite.
-Twenty-seven of the thirty-five — qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf,
-Transmission, Deluge, NZBGet, Tdarr, Lidarr, Bazarr, Jellyfin, Emby, Jellyseerr, Pi-hole,
-AdGuard Home, Portainer, Traefik, Nginx Proxy Manager, What's Up Docker, Uptime Kuma, Gatus,
-Healthchecks, Grafana, Speedtest Tracker, and Scrutiny — have also been confirmed against live
-instances (spun up with `docker run`, driven through real setup wizards and real data, then
-torn down). The rest (Readarr, Prowlarr, Overseerr, Immich, Mealie, Gluetun, Bookdrop, Phase
-5/6 backlog) are a solid first draft built from documented API shapes, not yet exercised live.
-Endpoint paths and field names vary by app version, so treat any integration here as "correct
-against the version tested," not as guaranteed forever.
+Thirty of the forty — qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf, Transmission,
+Deluge, NZBGet, Tdarr, Lidarr, Bazarr, Jellyfin, Emby, Jellyseerr, Pi-hole, AdGuard Home,
+Portainer, Traefik, Nginx Proxy Manager, What's Up Docker, Uptime Kuma, Gatus, Healthchecks,
+Grafana, Speedtest Tracker, Scrutiny, Home Assistant, Nextcloud, and UniFi Network — have also
+been confirmed against live instances (spun up with `docker run`, driven through real setup
+wizards and real data, then torn down). Proxmox VE and TrueNAS are the two exceptions to that
+process, for a structural reason rather than lack of effort: neither ships a Docker image —
+they're full hypervisor/NAS operating systems, not container workloads — so there's no
+lightweight way to stand one up for testing here. The rest (Readarr, Prowlarr, Overseerr,
+Immich, Mealie, Gluetun, Bookdrop, Proxmox VE, TrueNAS, Phase 6 backlog) are a solid first
+draft built from documented API shapes, not yet exercised live. Endpoint paths and field names
+vary by app version, so treat any integration here as "correct against the version tested," not
+as guaranteed forever.
 
 Several integrations had real, live-verified gotchas worth knowing about:
 
@@ -385,6 +390,13 @@ Several integrations had real, live-verified gotchas worth knowing about:
 **Portainer**'s Docker-proxy fallback (`GET /api/endpoints/{id}/docker/containers/json`) turned
 out to be the *common* path, not a rare edge case — the snapshot's `DockerSnapshotRaw.Containers`
 was absent on the version tested (2.45.0), so every `down`-view poll exercises that fallback.
+
+Proxmox VE, TrueNAS, Home Assistant, Nextcloud, and UniFi Network can surface an **"Allow
+self-signed / insecure TLS certificate"** checkbox in their config — appliance-style targets
+like these usually ship a self-signed cert out of the box. Verified against a real self-signed
+handshake, not just a mock: `HttpClient` rejects an unverified cert by default and only accepts
+one when that box is checked (`test/unit/lib.httpClient.test.mjs`, and — live — against UniFi
+Network's own default cert).
 
 ## Theming
 
@@ -456,7 +468,7 @@ design (no per-integration process, no unbounded cache growth).
 Actively developed — see [`TESTPLAN.md`](TESTPLAN.md) for the full case-by-case catalog. Every
 change ships behind the automated suite (unit + API + a headless-browser smoke test) plus a
 manual click-through checklist for anything touching layout or interaction; nothing merges
-without both. Twenty-seven of the thirty-five built-in integrations have also been confirmed
+without both. Thirty of the forty built-in integrations have also been confirmed
 against live instances (see the Integrations section above for the full list and its
 live-verified gotchas) — the rest are a solid first draft built from documented API shapes, not
 yet exercised against every real-world version/config quirk.

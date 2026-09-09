@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SIZE_PRESETS, sizeKeyFromWH, autoLinkTileHeight } from '../../src/shared/tileSizes.js';
 import { sanitizePageOptions } from '../../src/shared/pageOptions.js';
-import { fmtRate } from '../../src/shared/format.js';
+import { fmtRate, fmtBytes } from '../../src/shared/format.js';
 
 test('tileSizes: preset table is stable', () => {
   assert.deepEqual(SIZE_PRESETS.S, { w: 1, h: 1 });
@@ -80,4 +80,14 @@ test('fmtRate: steps down to KB/s and B/s so small rates are not shown as "0.0 M
   assert.equal(fmtRate(12 * 1024 ** 2), '12.0 MB/s');
   assert.equal(fmtRate(-5), '0 B/s');
   assert.equal(fmtRate('nonsense'), '0 B/s');
+});
+
+test('fmtBytes: adaptive KB/MB/GB/TB units for a storage size (not a rate)', () => {
+  assert.equal(fmtBytes(0), '0 KB');
+  assert.equal(fmtBytes(500 * 1024), '500 KB');
+  assert.equal(fmtBytes(5 * 1024 ** 2), '5.0 MB');
+  assert.equal(fmtBytes(5 * 1024 ** 3), '5.0 GB');
+  assert.equal(fmtBytes(5 * 1024 ** 4), '5.00 TB');
+  assert.equal(fmtBytes(-5), '0 KB');
+  assert.equal(fmtBytes('nonsense'), '0 KB');
 });

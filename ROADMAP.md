@@ -1,7 +1,7 @@
 # selfdash — service integration roadmap
 
 Status: **all phases approved.** Phase 1 shipped in **v0.5.0**, Phase 2 in **v0.6.0**,
-Phase 3 in **v0.7.0**, Phase 4 in **v0.8.0**; Phases 5–6 pending.
+Phase 3 in **v0.7.0**, Phase 4 in **v0.8.0**, Phase 5 in **v0.9.0**; Phase 6 pending.
 
 Reference point: [gethomepage.dev](https://gethomepage.dev) service-widget catalog, filtered to
 what's actually common in self-hosting and to what fits selfdash's **read-only poller** +
@@ -42,6 +42,22 @@ Speedtest Tracker's actual API has no `/api/v1` prefix and no history endpoint a
 `GET /api/speedtest/latest`; the "24h average" stat was dropped, not faked via a fallback), and
 Scrutiny's per-device map is nested at `data.summary`, not `data` itself. Uptime Kuma, Gatus,
 Healthchecks, and Grafana needed no changes.)
+
+**v0.9.0 — Phase 5 (5):** Proxmox VE · TrueNAS · Home Assistant · Nextcloud · UniFi Network
+(shared enabler: an `allowInsecureTLS` checkbox field, honored by `HttpClient.fetch()`/
+`fetchJson()` via `insecureTLS: true` — self-signed certs are the default on all three
+appliance-style targets here. Implementation note: pairing Node's built-in global `fetch`
+with an externally-constructed `undici` `Agent` throws on a version mismatch between Node's
+internal vendored undici and the npm package, so `httpClient.js` now uses undici's own
+`fetch` + `Agent` together, added as an explicit dependency. Tests:
+`test/unit/lib.httpClient.test.mjs` (a real self-signed TLS handshake against a committed
+test-fixture cert, not a mock) + `test/unit/integrations.{proxmox,truenas,homeassistant,
+nextcloud,unifi}.test.mjs`, TESTPLAN §3.6 I18c + I39–I43. Live-verified where feasible
+(2026-09-09): Home Assistant, Nextcloud, and UniFi Network — including a real self-signed-TLS
+round trip against UniFi's controller — all confirmed with zero code changes needed. Proxmox VE
+and TrueNAS could **not** be live-tested in this environment: neither ships a Docker image
+(they're full hypervisor/NAS operating systems, not container workloads), so both remain a
+solid first draft built from documented, stable REST APIs, covered by mock-HTTP tests only.)
 
 ## Ground rules for every new integration
 
@@ -129,7 +145,7 @@ Needs shared enabler **E1** (`status` model). After that these are quick.
 
 ---
 
-## Phase 5 — NAS, virtualization & home automation
+## Phase 5 — NAS, virtualization & home automation ✅ (v0.9.0)
 
 Bigger API surface / auth handshakes — do these once the pattern library is mature.
 

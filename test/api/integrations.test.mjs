@@ -12,7 +12,7 @@ describe('integrations API', () => {
     const r = await s.request('/api/integrations/available');
     assert.equal(r.status, 200);
     assert.ok(r.body.length >= 10, `expected the shipped integration catalog, got ${r.body.length}`);
-    for (const key of ['gluetun', 'sonarr', 'radarr', 'qbittorrent', 'plex', 'jellyfin', 'emby', 'bazarr', 'lidarr', 'jellyseerr', 'pihole', 'adguard', 'portainer', 'traefik', 'npm', 'transmission', 'deluge', 'nzbget', 'tdarr', 'whatsupdocker', 'uptimekuma', 'gatus', 'healthchecks', 'grafana', 'speedtest', 'scrutiny']) {
+    for (const key of ['gluetun', 'sonarr', 'radarr', 'qbittorrent', 'plex', 'jellyfin', 'emby', 'bazarr', 'lidarr', 'jellyseerr', 'pihole', 'adguard', 'portainer', 'traefik', 'npm', 'transmission', 'deluge', 'nzbget', 'tdarr', 'whatsupdocker', 'uptimekuma', 'gatus', 'healthchecks', 'grafana', 'speedtest', 'scrutiny', 'proxmox', 'truenas', 'homeassistant', 'nextcloud', 'unifi']) {
       const found = r.body.find((i) => i.key === key);
       assert.ok(found, `catalog includes ${key}`);
       assert.ok(Array.isArray(found.configSchema.fields), `${key} has configSchema.fields`);
@@ -72,6 +72,12 @@ describe('integrations API', () => {
     assert.equal(byKey.grafana.mergeGroup, 'grafana');
     assert.equal(byKey.speedtest.mergeGroup, 'speedtest');
     assert.equal(byKey.scrutiny.mergeGroup, 'scrutiny');
+    // Phase 5: no shared mergeGroup among these — each is its own single-vendor category.
+    assert.equal(byKey.proxmox.mergeGroup, 'proxmox');
+    assert.equal(byKey.truenas.mergeGroup, 'truenas');
+    assert.equal(byKey.homeassistant.mergeGroup, 'homeassistant');
+    assert.equal(byKey.nextcloud.mergeGroup, 'nextcloud');
+    assert.equal(byKey.unifi.mergeGroup, 'unifi');
     // No integration schema carries the old "Show" field any more — it moved to the tile.
     for (const typeDef of r.body) {
       assert.ok(!typeDef.configSchema.fields.some((f) => f.name === 'views'), `${typeDef.key}: no views field in config schema`);

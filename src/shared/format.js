@@ -10,3 +10,12 @@ export function fmtRate(bytesPerSec) {
   if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB/s`;
   return `${(n / 1024 ** 3).toFixed(2)} GB/s`;
 }
+
+// A byte count (storage size, not a rate) with adaptive units.
+export function fmtBytes(bytes) {
+  const n = Math.max(0, Number(bytes) || 0);
+  if (n < 1024 ** 2) return `${(n / 1024).toFixed(0)} KB`;
+  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  if (n < 1024 ** 4) return `${(n / 1024 ** 3).toFixed(1)} GB`;
+  return `${(n / 1024 ** 4).toFixed(2)} TB`;
+}
