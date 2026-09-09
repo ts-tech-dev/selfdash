@@ -348,18 +348,17 @@ Thirty-five integrations ship out of the box (`src/integrations/*.integration.js
 - **Other self-hosted** — Immich (photos), Mealie (recipes), Gluetun (VPN control server), Bookdrop (upcoming audiobook releases)
 
 They were built and validated against documented API shapes plus a mock-HTTP-server test suite.
-Twenty-one of the thirty-five — qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf,
+Twenty-seven of the thirty-five — qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf,
 Transmission, Deluge, NZBGet, Tdarr, Lidarr, Bazarr, Jellyfin, Emby, Jellyseerr, Pi-hole,
-AdGuard Home, Portainer, Traefik, Nginx Proxy Manager, and What's Up Docker — have also been
-confirmed against live instances (spun up with `docker run`, driven through real setup wizards
-and real data, then torn down). The rest, including the six Phase 4 monitoring integrations
-(Readarr, Prowlarr, Overseerr, Immich, Mealie, Gluetun, Bookdrop, Uptime Kuma, Gatus,
-Healthchecks, Grafana, Speedtest Tracker, Scrutiny) are a solid first draft built from
-documented API shapes, not yet exercised live. Endpoint paths and field names vary by app
-version, so treat any integration here as "correct against the version tested," not as
-guaranteed forever.
+AdGuard Home, Portainer, Traefik, Nginx Proxy Manager, What's Up Docker, Uptime Kuma, Gatus,
+Healthchecks, Grafana, Speedtest Tracker, and Scrutiny — have also been confirmed against live
+instances (spun up with `docker run`, driven through real setup wizards and real data, then
+torn down). The rest (Readarr, Prowlarr, Overseerr, Immich, Mealie, Gluetun, Bookdrop, Phase
+5/6 backlog) are a solid first draft built from documented API shapes, not yet exercised live.
+Endpoint paths and field names vary by app version, so treat any integration here as "correct
+against the version tested," not as guaranteed forever.
 
-Two integrations had real, live-verified gotchas worth knowing about:
+Several integrations had real, live-verified gotchas worth knowing about:
 
 - **Tdarr** has no documented public REST API — everything goes through one generic CRUD
   endpoint (`POST /api/v2/cruddb`) over its internal LokiJS collections, plus
@@ -373,6 +372,15 @@ Two integrations had real, live-verified gotchas worth knowing about:
   state, it just returns `torrents: null`, which would otherwise look exactly like "no torrents"
   forever. The integration detects `connected: false` and calls `web.connect` on the first
   configured host itself.
+- **Speedtest Tracker**'s real API has no `/api/v1` prefix and no history endpoint at all — the
+  only route is `GET /api/speedtest/latest`. The originally-planned "24h average" stat was
+  dropped entirely rather than shipped as a fallback that silently just repeats the latest
+  reading forever.
+- **Scrutiny**'s per-device map is nested one level deeper than it looks —
+  `{ data: { summary: { <wwn>: {...} } } }`, not `{ data: { <wwn>: {...} } }` — easy to miss
+  since `data` is a plain object either way. Getting this wrong doesn't error, it just returns
+  one bogus "device" (the whole summary map, mistaken for a single entry) instead of the real
+  ones.
 
 **Portainer**'s Docker-proxy fallback (`GET /api/endpoints/{id}/docker/containers/json`) turned
 out to be the *common* path, not a rare edge case — the snapshot's `DockerSnapshotRaw.Containers`
@@ -448,8 +456,8 @@ design (no per-integration process, no unbounded cache growth).
 Actively developed — see [`TESTPLAN.md`](TESTPLAN.md) for the full case-by-case catalog. Every
 change ships behind the automated suite (unit + API + a headless-browser smoke test) plus a
 manual click-through checklist for anything touching layout or interaction; nothing merges
-without both. Twenty-one of the thirty-five built-in integrations have also been confirmed
-against live instances (see the Integrations section above for the full list and two
+without both. Twenty-seven of the thirty-five built-in integrations have also been confirmed
+against live instances (see the Integrations section above for the full list and its
 live-verified gotchas) — the rest are a solid first draft built from documented API shapes, not
 yet exercised against every real-world version/config quirk.
 

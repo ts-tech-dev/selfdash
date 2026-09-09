@@ -37,7 +37,11 @@ detail?}`, a `StatusView` dot-list renderer in `WidgetTile.jsx`, a `mergeStatus`
 `status` added to `SCROLLABLE_VIEW_TYPES`; Uptime Kuma/Gatus/Healthchecks share
 `mergeGroup: 'monitor'`. Tests: `test/unit/integrations.{uptimekuma,gatus,healthchecks,grafana,
 speedtest,scrutiny}.test.mjs`, `test/unit/shared.mergeModels.test.mjs`, TESTPLAN §3.2 T20/T20b +
-§3.6 I33–I38.)
+§3.6 I33–I38. All 6 live-verified post-ship (2026-09-09): found and fixed two real bugs —
+Speedtest Tracker's actual API has no `/api/v1` prefix and no history endpoint at all (only
+`GET /api/speedtest/latest`; the "24h average" stat was dropped, not faked via a fallback), and
+Scrutiny's per-device map is nested at `data.summary`, not `data` itself. Uptime Kuma, Gatus,
+Healthchecks, and Grafana needed no changes.)
 
 ## Ground rules for every new integration
 

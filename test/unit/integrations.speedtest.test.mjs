@@ -2,49 +2,55 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import SpeedtestIntegration from '../../src/integrations/speedtest.integration.js';
 
-function makeHttp({ latest, recent, recentFails = false }) {
+// Route verified live against ghcr.io/alexjustesen/speedtest-tracker: the real endpoint
+// is GET /api/speedtest/latest (no /api/v1 prefix, no history/list endpoint at all —
+// `php artisan route:list` shows only speedtest/latest, healthcheck, user), and it's
+// public by default (no auth required).
+function makeHttp(data) {
+  const calls = [];
   return {
-    fetchJson: async (url) => {
-      if (url.includes('/results/latest')) return { data: latest };
-      if (url.includes('/results')) {
-        if (recentFails) throw new Error('no history endpoint');
-        return { data: recent };
-      }
+    calls,
+    fetchJson: async (url, opts) => {
+      calls.push({ url, opts });
+      if (url.endsWith('/api/speedtest/latest')) return { message: 'ok', data };
       throw new Error(`unrouted: ${url}`);
     },
   };
 }
 
 const cfg = (url) => ({ url });
-const inHours = (h) => new Date(Date.now() - h * 3600_000).toISOString();
 
-test('speedtest stats: reports the latest reading and the 24h average from recent history', async () => {
-  const http = makeHttp({
-    latest: { download: 450.2, upload: 40.1, ping: 8, created_at: inHours(0) },
-    recent: [
-      { download: 450.2, upload: 40.1, ping: 8, created_at: inHours(0) },
-      { download: 400, upload: 38, ping: 9, created_at: inHours(5) },
-      { download: 300, upload: 30, ping: 12, created_at: inHours(48) }, // outside the 24h window
-    ],
-  });
+test('speedtest stats: reports the latest reading (already Mbps in the API response)', async () => {
+  const http = makeHttp({ download: 425.06, upload: 175.19, ping: 13.576, server_name: 'T-Mobile Fiber | Intrepid' });
   const { byView } = await new SpeedtestIntegration().fetchData({ config: cfg('http://speed-a.local'), http });
   assert.deepEqual(byView.stats, {
     type: 'stats',
     items: [
-      { label: 'Download', value: '450.2 Mbps' },
-      { label: 'Upload', value: '40.1 Mbps' },
-      { label: 'Ping', value: '8 ms' },
-      { label: 'Avg DL (24h)', value: '425.1 Mbps' },
-      { label: 'Avg UL (24h)', value: '39.0 Mbps' },
+      { label: 'Download', value: '425.1 Mbps' },
+      { label: 'Upload', value: '175.2 Mbps' },
+      { label: 'Ping', value: '14 ms' },
+      { label: 'Server', value: 'T-Mobile Fiber | Intrepid' },
     ],
   });
 });
 
-test('speedtest stats: falls back to the latest reading when the history call fails', async () => {
-  const http = makeHttp({ latest: { download: 200, upload: 20, ping: 15 }, recentFails: true });
+test('speedtest stats: missing fields fall back to 0/"-" instead of throwing', async () => {
+  const http = makeHttp({});
   const { byView } = await new SpeedtestIntegration().fetchData({ config: cfg('http://speed-b.local'), http });
-  assert.deepEqual(byView.stats.items.slice(3), [
-    { label: 'Avg DL (24h)', value: '200.0 Mbps' },
-    { label: 'Avg UL (24h)', value: '20.0 Mbps' },
+  assert.deepEqual(byView.stats.items, [
+    { label: 'Download', value: '0.0 Mbps' },
+    { label: 'Upload', value: '0.0 Mbps' },
+    { label: 'Ping', value: '0 ms' },
+    { label: 'Server', value: '-' },
   ]);
+});
+
+test('speedtest: sends the API token as a bearer header only when configured', async () => {
+  const withKey = makeHttp({ download: 1, upload: 1, ping: 1 });
+  await new SpeedtestIntegration().fetchData({ config: { url: 'http://speed-c.local', apiKey: 'tok' }, http: withKey });
+  assert.equal(withKey.calls[0].opts.headers.Authorization, 'Bearer tok');
+
+  const noKey = makeHttp({ download: 1, upload: 1, ping: 1 });
+  await new SpeedtestIntegration().fetchData({ config: cfg('http://speed-d.local'), http: noKey });
+  assert.equal(noKey.calls[0].opts.headers.Authorization, undefined);
 });
