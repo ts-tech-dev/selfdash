@@ -30,7 +30,7 @@ are all picked per page from the browser.
   the browser — nothing to hand-edit, indent correctly, or restart the container over.
 - **12 tile types**, not just links: clock, weather, notes, search, RSS/Atom, an ICS calendar,
   bookmarks, a custom-API mapper, host resources (CPU/mem/disk/net), an iframe embed, plus a
-  widget tile for any of the 14 built-in service integrations.
+  widget tile for any of the 19 built-in service integrations.
 - **Portable by default.** Everything lives in one SQLite file plus an uploads folder — export
   a `.zip` (full backup) or a `.yaml` (version-controllable config, secrets kept out) and restore
   either onto a fresh container.
@@ -329,17 +329,18 @@ The five `WidgetModel` shapes, and what each `items[]` entry looks like:
 
 | `type` | `items[]` shape | Used by |
 |---|---|---|
-| `stats` | `{ label, value }` | Audiobookshelf, Plex, Tautulli, *arr library stats |
-| `nowplaying` | `{ title, subtitle?, image?, progress? }` (0-1) | Plex, Tautulli (active sessions) |
-| `queue` | `{ title, status?, progress? }` (0-1) | qBittorrent, SABnzbd, Radarr, Sonarr, Readarr, Tautulli streams |
-| `list` | `{ title, subtitle?, image? }` | *arr upcoming, Tautulli history, Bookdrop |
-| `calendar` | `{ ts, title, subtitle? }` (`ts` = epoch ms; bucketed by local day, rendered one month at a time with ‹ › navigation) | Radarr / Sonarr release calendar |
+| `stats` | `{ label, value }` | Audiobookshelf, Plex, Jellyfin, Emby, Tautulli, Bazarr, *arr library stats |
+| `nowplaying` | `{ title, subtitle?, image?, progress? }` (0-1) | Plex, Jellyfin, Emby, Tautulli (active sessions) |
+| `queue` | `{ title, status?, progress? }` (0-1) | qBittorrent, SABnzbd, Radarr, Sonarr, Readarr, Lidarr, Tautulli streams |
+| `list` | `{ title, subtitle?, image? }` | *arr upcoming, Bazarr wanted / history, Tautulli history, Bookdrop |
+| `calendar` | `{ ts, title, subtitle? }` (`ts` = epoch ms; bucketed by local day, rendered one month at a time with ‹ › navigation) | Radarr / Sonarr / Lidarr release calendar |
 
-Fourteen integrations ship out of the box (`src/integrations/*.integration.js`):
+Nineteen integrations ship out of the box (`src/integrations/*.integration.js`):
 
 - **Downloads** — qBittorrent, SABnzbd
-- **Media libraries / *arr** — Radarr, Sonarr, Readarr, Prowlarr, Plex, Tautulli, Audiobookshelf
-- **Requests** — Overseerr (also works with Jellyseerr / seerr)
+- **Media servers** — Plex, Jellyfin, Emby, Tautulli, Audiobookshelf
+- **Media management / *arr** — Radarr, Sonarr, Lidarr, Readarr, Prowlarr, Bazarr (subtitles)
+- **Requests** — Overseerr, Jellyseerr (also works with seerr)
 - **Other self-hosted** — Immich (photos), Mealie (recipes), Gluetun (VPN control server), Bookdrop (upcoming audiobook releases)
 
 They were built and validated against documented API shapes plus a mock-HTTP-server test suite;
@@ -418,7 +419,7 @@ design (no per-integration process, no unbounded cache growth).
 Actively developed — see [`TESTPLAN.md`](TESTPLAN.md) for the full case-by-case catalog. Every
 change ships behind the automated suite (unit + API + a headless-browser smoke test) plus a
 manual click-through checklist for anything touching layout or interaction; nothing merges
-without both. Six of the fourteen built-in integrations (qBittorrent, SABnzbd, Radarr, Sonarr,
+without both. Six of the nineteen built-in integrations (qBittorrent, SABnzbd, Radarr, Sonarr,
 Plex, Audiobookshelf) have also been confirmed against live instances — the rest are a solid
 first draft built from documented API shapes, not yet exercised against every real-world
 version/config quirk.

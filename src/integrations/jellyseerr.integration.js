@@ -1,12 +1,11 @@
 import { BaseIntegration } from './_base.js';
 import { seerrViews, seerrConfigFields, fetchSeerrData } from './_seerrBase.js';
 
-// Overseerr / Jellyseerr / seerr all speak the same API — see _seerrBase.js for the
-// shared views. `mergeGroup: 'requests'` lets an Overseerr and a Jellyseerr tile combine
-// their list views ("Also include").
-export default class OverseerrIntegration extends BaseIntegration {
-  static key = 'overseerr';
-  static title = 'Overseerr';
+// Jellyseerr is the Jellyfin/Emby-oriented fork of Overseerr; identical API. Shares
+// `mergeGroup: 'requests'` with Overseerr so tiles from both can combine.
+export default class JellyseerrIntegration extends BaseIntegration {
+  static key = 'jellyseerr';
+  static title = 'Jellyseerr';
   static mergeGroup = 'requests';
   static defaultInterval = 120;
   static views = seerrViews;

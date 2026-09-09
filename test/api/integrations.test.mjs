@@ -12,7 +12,7 @@ describe('integrations API', () => {
     const r = await s.request('/api/integrations/available');
     assert.equal(r.status, 200);
     assert.ok(r.body.length >= 10, `expected the shipped integration catalog, got ${r.body.length}`);
-    for (const key of ['gluetun', 'sonarr', 'radarr', 'qbittorrent', 'plex']) {
+    for (const key of ['gluetun', 'sonarr', 'radarr', 'qbittorrent', 'plex', 'jellyfin', 'emby', 'bazarr', 'lidarr', 'jellyseerr']) {
       const found = r.body.find((i) => i.key === key);
       assert.ok(found, `catalog includes ${key}`);
       assert.ok(Array.isArray(found.configSchema.fields), `${key} has configSchema.fields`);
@@ -27,6 +27,12 @@ describe('integrations API', () => {
     assert.deepEqual(gluetun.views, { status: 'VPN status' });
     assert.deepEqual(Object.keys(radarr.views), ['queue', 'stats', 'upcoming', 'calendar', 'history', 'health', 'disk']);
 
+    // Phase 1: Jellyfin/Emby mirror Plex's two-view shape; Lidarr mirrors the *arr family.
+    const jellyfin = r.body.find((i) => i.key === 'jellyfin');
+    assert.deepEqual(jellyfin.views, { nowplaying: 'Now playing', stats: 'Library stats' });
+    const lidarr = r.body.find((i) => i.key === 'lidarr');
+    assert.deepEqual(Object.keys(lidarr.views), ['queue', 'stats', 'upcoming', 'calendar', 'history', 'health', 'disk']);
+
     // mergeGroup gates which integrations "Also include" can combine. Download clients
     // and *arr apps both expose a `queue` view but must not merge into each other.
     const byKey = Object.fromEntries(r.body.map((i) => [i.key, i]));
@@ -35,9 +41,17 @@ describe('integrations API', () => {
     assert.equal(byKey.radarr.mergeGroup, 'arr');
     assert.equal(byKey.sonarr.mergeGroup, 'arr');
     assert.equal(byKey.readarr.mergeGroup, 'arr');
+    // Phase 1 additions: Lidarr + Bazarr join the *arr group; Overseerr + Jellyseerr
+    // share a `requests` group so their list views can combine.
+    assert.equal(byKey.lidarr.mergeGroup, 'arr');
+    assert.equal(byKey.bazarr.mergeGroup, 'arr');
+    assert.equal(byKey.overseerr.mergeGroup, 'requests');
+    assert.equal(byKey.jellyseerr.mergeGroup, 'requests');
     // integrations with no explicit group fall back to their own key (merge only with same type)
     assert.equal(byKey.gluetun.mergeGroup, 'gluetun');
     assert.equal(byKey.plex.mergeGroup, 'plex');
+    assert.equal(byKey.jellyfin.mergeGroup, 'jellyfin');
+    assert.equal(byKey.emby.mergeGroup, 'emby');
     // No integration schema carries the old "Show" field any more — it moved to the tile.
     for (const typeDef of r.body) {
       assert.ok(!typeDef.configSchema.fields.some((f) => f.name === 'views'), `${typeDef.key}: no views field in config schema`);
