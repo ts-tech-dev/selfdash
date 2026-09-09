@@ -1,6 +1,7 @@
 # selfdash — service integration roadmap
 
-Status: **all phases approved.** Phase 1 shipped in **v0.5.0**, Phase 2 in **v0.6.0**; Phases 3–6 pending.
+Status: **all phases approved.** Phase 1 shipped in **v0.5.0**, Phase 2 in **v0.6.0**,
+Phase 3 in **v0.7.0**; Phases 4–6 pending.
 
 Reference point: [gethomepage.dev](https://gethomepage.dev) service-widget catalog, filtered to
 what's actually common in self-hosting and to what fits selfdash's **read-only poller** +
@@ -20,6 +21,15 @@ TESTPLAN §3.6 I19–I22.)
 (new `mergeGroup: 'dns'` on Pi-hole + AdGuard; Pi-hole tries v6 API then falls back to v5;
 NPM caches its bearer token with in-flight dedup + 401 re-auth. Tests:
 `test/unit/integrations.{pihole,adguard,portainer,traefik,npm}.test.mjs`, TESTPLAN §3.6 I23–I27.)
+
+**v0.7.0 — Phase 3 (5):** Transmission · Deluge · NZBGet · Tdarr · What's Up Docker
+(Transmission/Deluge/NZBGet join `mergeGroup: 'download'` alongside qbit/sab; Transmission
+handles the RPC session-id 409 handshake, Deluge caches its login cookie and retries once on
+any RPC error since Deluge reports auth failure inside a 200 body, not a status code; Tdarr
+goes through its single generic `/api/v2/cruddb` endpoint with defensive field fallbacks — see
+the README caveat, it's the least confidently sourced integration in the set. Tests:
+`test/unit/integrations.{transmission,deluge,nzbget,tdarr,whatsupdocker}.test.mjs`,
+TESTPLAN §3.6 I28–I32.)
 
 ## Ground rules for every new integration
 
@@ -74,7 +84,7 @@ Ubiquitous in home labs; all clean `stats` + `list`, all read-only.
 
 ---
 
-## Phase 3 — More download clients & transcoding
+## Phase 3 — More download clients & transcoding ✅ (v0.7.0)
 
 Rounds out the `download` merge group and adds the transcode-queue apps.
 

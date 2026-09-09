@@ -329,26 +329,30 @@ The five `WidgetModel` shapes, and what each `items[]` entry looks like:
 
 | `type` | `items[]` shape | Used by |
 |---|---|---|
-| `stats` | `{ label, value }` | Audiobookshelf, Plex, Jellyfin, Emby, Tautulli, Bazarr, Pi-hole, AdGuard, Portainer, Traefik, NPM, *arr library stats |
+| `stats` | `{ label, value }` | Audiobookshelf, Plex, Jellyfin, Emby, Tautulli, Bazarr, Pi-hole, AdGuard, Portainer, Traefik, NPM, Transmission, Deluge, NZBGet, Tdarr, What's Up Docker, *arr library stats |
 | `nowplaying` | `{ title, subtitle?, image?, progress? }` (0-1) | Plex, Jellyfin, Emby, Tautulli (active sessions) |
-| `queue` | `{ title, status?, progress? }` (0-1) | qBittorrent, SABnzbd, Radarr, Sonarr, Readarr, Lidarr, Tautulli streams |
-| `list` | `{ title, subtitle?, image? }` | *arr upcoming, Bazarr wanted / history, AdGuard top-blocked, Portainer stopped/unhealthy, NPM expiring certs, Tautulli history, Bookdrop |
+| `queue` | `{ title, status?, progress? }` (0-1) | qBittorrent, SABnzbd, Radarr, Sonarr, Readarr, Lidarr, Transmission, Deluge, NZBGet, Tautulli streams |
+| `list` | `{ title, subtitle?, image? }` | *arr upcoming, Bazarr wanted / history, AdGuard top-blocked, Portainer stopped/unhealthy, NPM expiring certs, Tdarr staged/errored, What's Up Docker updates, Tautulli history, Bookdrop |
 | `calendar` | `{ ts, title, subtitle? }` (`ts` = epoch ms; bucketed by local day, rendered one month at a time with ‹ › navigation) | Radarr / Sonarr / Lidarr release calendar |
 
-Twenty-four integrations ship out of the box (`src/integrations/*.integration.js`):
+Twenty-nine integrations ship out of the box (`src/integrations/*.integration.js`):
 
-- **Downloads** — qBittorrent, SABnzbd
+- **Downloads** — qBittorrent, SABnzbd, Transmission, Deluge, NZBGet
 - **Media servers** — Plex, Jellyfin, Emby, Tautulli, Audiobookshelf
 - **Media management / *arr** — Radarr, Sonarr, Lidarr, Readarr, Prowlarr, Bazarr (subtitles)
 - **Requests** — Overseerr, Jellyseerr (also works with seerr)
 - **Network / infra** — Pi-hole, AdGuard Home, Portainer, Traefik, Nginx Proxy Manager
+- **Transcoding / container hygiene** — Tdarr, What's Up Docker
 - **Other self-hosted** — Immich (photos), Mealie (recipes), Gluetun (VPN control server), Bookdrop (upcoming audiobook releases)
 
 They were built and validated against documented API shapes plus a mock-HTTP-server test suite;
 qBittorrent, SABnzbd, Radarr, Sonarr, Plex, and Audiobookshelf have also been confirmed against
 live instances. Treat the rest as a solid first draft, not as pre-verified against every
 real-world version/config quirk — endpoint paths and field names in particular vary by app
-version.
+version. Tdarr in particular has no documented public REST API (everything goes through one
+generic CRUD endpoint over its internal collections), so its field-name assumptions are the
+least confidently sourced in the set — expect to patch the collection field names against a
+real instance before relying on it.
 
 ## Theming
 
@@ -420,7 +424,7 @@ design (no per-integration process, no unbounded cache growth).
 Actively developed — see [`TESTPLAN.md`](TESTPLAN.md) for the full case-by-case catalog. Every
 change ships behind the automated suite (unit + API + a headless-browser smoke test) plus a
 manual click-through checklist for anything touching layout or interaction; nothing merges
-without both. Six of the twenty-four built-in integrations (qBittorrent, SABnzbd, Radarr, Sonarr,
+without both. Six of the twenty-nine built-in integrations (qBittorrent, SABnzbd, Radarr, Sonarr,
 Plex, Audiobookshelf) have also been confirmed against live instances — the rest are a solid
 first draft built from documented API shapes, not yet exercised against every real-world
 version/config quirk.
