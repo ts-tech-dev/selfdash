@@ -30,7 +30,7 @@ are all picked per page from the browser.
   the browser — nothing to hand-edit, indent correctly, or restart the container over.
 - **12 tile types**, not just links: clock, weather, notes, search, RSS/Atom, an ICS calendar,
   bookmarks, a custom-API mapper, host resources (CPU/mem/disk/net), an iframe embed, plus a
-  widget tile for any of the 24 built-in service integrations.
+  widget tile for any of the 53 built-in service integrations.
 - **Portable by default.** Everything lives in one SQLite file plus an uploads folder — export
   a `.zip` (full backup) or a `.yaml` (version-controllable config, secrets kept out) and restore
   either onto a fresh container.
@@ -329,39 +329,44 @@ The six `WidgetModel` shapes, and what each `items[]` entry looks like:
 
 | `type` | `items[]` shape | Used by |
 |---|---|---|
-| `stats` | `{ label, value }` | Audiobookshelf, Plex, Jellyfin, Emby, Tautulli, Bazarr, Pi-hole, AdGuard, Portainer, Traefik, NPM, Transmission, Deluge, NZBGet, Tdarr, What's Up Docker, Uptime Kuma, Gatus, Healthchecks, Grafana, Speedtest Tracker, Scrutiny, *arr library stats |
-| `nowplaying` | `{ title, subtitle?, image?, progress? }` (0-1) | Plex, Jellyfin, Emby, Tautulli (active sessions) |
+| `stats` | `{ label, value }` | Audiobookshelf, Plex, Jellyfin, Emby, Tautulli, Bazarr, Pi-hole, AdGuard, Portainer, Traefik, NPM, Transmission, Deluge, NZBGet, Tdarr, What's Up Docker, Uptime Kuma, Gatus, Healthchecks, Grafana, Speedtest Tracker, Scrutiny, Prometheus, Navidrome, Paperless-ngx, Komga, Kavita, Miniflux, FreshRSS, Gotify, Frigate, Mastodon, RomM, Vikunja, *arr library stats |
+| `nowplaying` | `{ title, subtitle?, image?, progress? }` (0-1) | Plex, Jellyfin, Emby, Tautulli (active sessions), Navidrome (active streams) |
 | `queue` | `{ title, status?, progress? }` (0-1) | qBittorrent, SABnzbd, Radarr, Sonarr, Readarr, Lidarr, Transmission, Deluge, NZBGet, Tautulli streams |
-| `list` | `{ title, subtitle?, image? }` | *arr upcoming, Bazarr wanted / history, AdGuard top-blocked, Portainer stopped/unhealthy, NPM expiring certs, Tdarr staged/errored, What's Up Docker updates, Grafana firing alerts, Tautulli history, Bookdrop |
+| `list` | `{ title, subtitle?, image? }` | *arr upcoming, Bazarr wanted / history, AdGuard top-blocked, Portainer stopped/unhealthy, NPM expiring certs, Tdarr staged/errored, What's Up Docker updates, Grafana firing alerts, Prometheus down targets, Paperless-ngx inbox, Gotify / ntfy messages, Vikunja tasks due, Frigate events, Tautulli history, Bookdrop |
 | `calendar` | `{ ts, title, subtitle? }` (`ts` = epoch ms; bucketed by local day, rendered one month at a time with ‹ › navigation) | Radarr / Sonarr / Lidarr release calendar |
 | `status` | `{ label, state: 'up'\|'down'\|'warn'\|'paused', detail? }` (rendered as a colored dot per row) | Uptime Kuma / Gatus / Healthchecks monitor boards, Scrutiny drive health |
 
-Forty integrations ship out of the box (`src/integrations/*.integration.js`):
+Fifty-three integrations ship out of the box (`src/integrations/*.integration.js`):
 
 - **Downloads** — qBittorrent, SABnzbd, Transmission, Deluge, NZBGet
 - **Media servers** — Plex, Jellyfin, Emby, Tautulli, Audiobookshelf
 - **Media management / *arr** — Radarr, Sonarr, Lidarr, Readarr, Prowlarr, Bazarr (subtitles)
-- **Monitoring / status** — Uptime Kuma, Gatus, Healthchecks, Grafana, Speedtest Tracker, Scrutiny (SMART disk health)
+- **Music / books / comics** — Navidrome, Komga, Kavita
+- **Monitoring / status** — Uptime Kuma, Gatus, Healthchecks, Grafana, Speedtest Tracker, Scrutiny (SMART disk health), Prometheus
 - **Requests** — Overseerr, Jellyseerr (also works with seerr)
 - **Network / infra** — Pi-hole, AdGuard Home, Portainer, Traefik, Nginx Proxy Manager, UniFi Network
-- **NAS / virtualization / home automation** — Proxmox VE, TrueNAS, Home Assistant, Nextcloud
+- **NAS / virtualization / home automation** — Proxmox VE, TrueNAS, Home Assistant, Nextcloud, Frigate (NVR)
+- **Notifications / feeds** — Gotify, ntfy, Miniflux, FreshRSS
+- **Productivity / docs** — Paperless-ngx, Vikunja
 - **Transcoding / container hygiene** — Tdarr, What's Up Docker
-- **Other self-hosted** — Immich (photos), Mealie (recipes), Gluetun (VPN control server), Bookdrop (upcoming audiobook releases)
+- **Other self-hosted** — Immich (photos), Mealie (recipes), Gluetun (VPN control server), Bookdrop (upcoming audiobook releases), Mastodon (instance stats), RomM (retro-game library)
 
 They were built and validated against documented API shapes plus a mock-HTTP-server test suite.
-Thirty of the forty — qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf, Transmission,
+Forty-two of the fifty-three — qBittorrent, SABnzbd, Radarr, Sonarr, Plex, Audiobookshelf, Transmission,
 Deluge, NZBGet, Tdarr, Lidarr, Bazarr, Jellyfin, Emby, Jellyseerr, Pi-hole, AdGuard Home,
 Portainer, Traefik, Nginx Proxy Manager, What's Up Docker, Uptime Kuma, Gatus, Healthchecks,
-Grafana, Speedtest Tracker, Scrutiny, Home Assistant, Nextcloud, and UniFi Network — have also
-been confirmed against live instances (spun up with `docker run`, driven through real setup
-wizards and real data, then torn down). Proxmox VE and TrueNAS are the two exceptions to that
-process, for a structural reason rather than lack of effort: neither ships a Docker image —
-they're full hypervisor/NAS operating systems, not container workloads — so there's no
-lightweight way to stand one up for testing here. The rest (Readarr, Prowlarr, Overseerr,
-Immich, Mealie, Gluetun, Bookdrop, Proxmox VE, TrueNAS, Phase 6 backlog) are a solid first
-draft built from documented API shapes, not yet exercised live. Endpoint paths and field names
-vary by app version, so treat any integration here as "correct against the version tested," not
-as guaranteed forever.
+Grafana, Speedtest Tracker, Scrutiny, Home Assistant, Nextcloud, UniFi Network, Navidrome,
+Paperless-ngx, Komga, Kavita, Miniflux, FreshRSS, Gotify, ntfy, Vikunja, Frigate, Prometheus,
+and RomM — have also been confirmed against live instances (spun up with `docker run`, driven
+through real setup wizards and real data, then torn down); Mastodon's instance-stats endpoint
+was checked read-only against the live `mastodon.social` API. Proxmox VE and TrueNAS are the two
+exceptions to that process, for a structural reason rather than lack of effort: neither ships a
+Docker image — they're full hypervisor/NAS operating systems, not container workloads — so
+there's no lightweight way to stand one up for testing here. The rest (Readarr, Prowlarr,
+Overseerr, Immich, Mealie, Gluetun, Bookdrop, Proxmox VE, TrueNAS) are a solid first draft
+built from documented API shapes, not yet exercised live. Endpoint paths and field names vary
+by app version, so treat any integration here as "correct against the version tested," not as
+guaranteed forever.
 
 Several integrations had real, live-verified gotchas worth knowing about:
 
@@ -386,6 +391,14 @@ Several integrations had real, live-verified gotchas worth knowing about:
   since `data` is a plain object either way. Getting this wrong doesn't error, it just returns
   one bogus "device" (the whole summary map, mistaken for a single entry) instead of the real
   ones.
+- **Vikunja**'s "all tasks" list endpoint is `GET /api/v1/tasks` — **not** `/api/v1/tasks/all`,
+  which 400s `Invalid model provided` on current Vikunja (v2.6). An API token (`tk_…`) also
+  needs the `tasks: read_all` permission scope, or the same route 401s.
+- **FreshRSS**'s Google Reader API is off until `api_enabled` is set in `data/config.php` (it's
+  a global toggle, not the per-user API password), and the `ClientLogin` `Auth=` token itself
+  contains a `/` — pass it through verbatim.
+- **Kavita**'s `/api/Stats/user/read` returns an empty `200` body until the user has some
+  reading progress; "Words read" reads as 0 until then.
 
 **Portainer**'s Docker-proxy fallback (`GET /api/endpoints/{id}/docker/containers/json`) turned
 out to be the *common* path, not a rare edge case — the snapshot's `DockerSnapshotRaw.Containers`
@@ -468,7 +481,7 @@ design (no per-integration process, no unbounded cache growth).
 Actively developed — see [`TESTPLAN.md`](TESTPLAN.md) for the full case-by-case catalog. Every
 change ships behind the automated suite (unit + API + a headless-browser smoke test) plus a
 manual click-through checklist for anything touching layout or interaction; nothing merges
-without both. Thirty of the forty built-in integrations have also been confirmed
+without both. Forty-two of the fifty-three built-in integrations have also been confirmed
 against live instances (see the Integrations section above for the full list and its
 live-verified gotchas) — the rest are a solid first draft built from documented API shapes, not
 yet exercised against every real-world version/config quirk.

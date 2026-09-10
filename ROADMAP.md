@@ -1,7 +1,7 @@
 # selfdash — service integration roadmap
 
-Status: **all phases approved.** Phase 1 shipped in **v0.5.0**, Phase 2 in **v0.6.0**,
-Phase 3 in **v0.7.0**, Phase 4 in **v0.8.0**, Phase 5 in **v0.9.0**; Phase 6 pending.
+Status: **all phases shipped.** Phase 1 → **v0.5.0**, Phase 2 → **v0.6.0**, Phase 3 → **v0.7.0**,
+Phase 4 → **v0.8.0**, Phase 5 → **v0.9.0**, Phase 6 (all 13 backlog rows) → **v0.10.0**.
 
 Reference point: [gethomepage.dev](https://gethomepage.dev) service-widget catalog, filtered to
 what's actually common in self-hosting and to what fits selfdash's **read-only poller** +
@@ -161,9 +161,15 @@ Bigger API surface / auth handshakes — do these once the pattern library is ma
 
 ---
 
-## Phase 6 — Content libraries & productivity (backlog)
+## Phase 6 — Content libraries & productivity ✅ (v0.10.0)
 
-Long tail. Pull individual items forward if you use them.
+All 13 rows shipped. Live-verified 2026-09-10 (spun up with `docker run`, driven through
+real setup + data, torn down): Navidrome, Paperless-ngx, Komga, Kavita, Miniflux, FreshRSS,
+Gotify, ntfy, Vikunja, Frigate, Prometheus, RomM; Mastodon checked read-only against the
+live `mastodon.social` `/api/v1/instance`. One real bug found + fixed: **Vikunja's list
+endpoint is `/api/v1/tasks`, not `/tasks/all`** (that 400s "Invalid model provided" on
+current Vikunja). Tests `test/unit/integrations.{navidrome,paperlessngx,komga,kavita,miniflux,
+freshrss,gotify,ntfy,vikunja,frigate,prometheus,mastodon,romm}.test.mjs`, TESTPLAN §3.6 I44–I56.
 
 | Service | Homepage parity | Views (model) | Effort | Notes |
 |---|---|---|---|---|
