@@ -97,6 +97,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | T28 | The `0003_iframe_own_type` migration promotes a pre-upgrade `link`+`open_mode:iframe` row to `type: iframe`, moving its `url` column into `config.url` and resetting `open_mode`; the YAML importer applies the same upgrade to an old-shaped exported doc on import | ✅ `unit/db.migrations` · `api/config` |
 | T29 | `autoLinkTileHeight`: a combined link+integration tile's single non-scrollable view (`stats`/`nowplaying`/`calendar`) is bumped to the no-scroll minimum height (never shrunk below whatever was already picked); a scrollable view (`queue`/`list`) or an unknown type (integration not polled yet) leaves the height alone — wired in `TileModal.jsx`'s submit for a single selected (or default) view only, so a `queue`/`list` — a download queue, "recently imported" — keeps scrolling as intended | ✅ `unit/shared.misc` |
 | T30 | `bookmarks` sanitizer: each link's `column` is clamped to 1-4 independent of the current `columns` count (so lowering columns and raising it back doesn't lose an assignment); missing/invalid values default to 1 | ✅ `unit/shared.tileConfig` |
+| T31 | Calendar day-hover card (`DayPopover` in `WidgetTile.jsx`): the portalled card is interactive (`pointer-events` on, `onMouseEnter`/`onMouseLeave` wired into a shared ~160ms hover-intent close timer in `MonthGrid`) so the cursor can cross the cell→card gap and scroll a busy day's list inside the card without it closing; a real page scroll (capture-phase `scroll` listener, but scrolls whose `target` is inside `.widget-cal-pop` are ignored) dismisses it; card is 320px wide with a sticky date header and its `max-height` is the room available above/below the anchor | 🖐️ §9.9 |
 
 ### 3.3 Settings (`src/routes/settings.js`)
 | # | Case | Where |
@@ -445,9 +446,13 @@ Run after frontend changes or before a release. ~5 minutes.
    day cell shows only the show/movie name (no source tag). Hover (or focus) a
    day with releases → a floating card lists each release that day with its
    poster + name + episode/release tag; the card escapes the tile's clipped
-   box. The calendar shows one month at a time — ‹ › page between months
-   (arrows disable past the data range), a "Today" chip returns to the current
-   month.
+   box. The card is **interactive**: moving the cursor off the day cell onto
+   the card keeps it open (hover-intent, ~160ms close delay), and a busy day
+   (more releases than fit) scrolls inside the card without it closing — the
+   date line stays pinned at the top while the list scrolls. A real page
+   scroll (not scrolling inside the card) dismisses it. The calendar shows one
+   month at a time — ‹ › page between months (arrows disable past the data
+   range), a "Today" chip returns to the current month.
 10. **Tile scaling:** drop a **weather** tile and a **calendar** widget to the
     smallest (1×1) size → text isn't clipped: weather keeps icon + temp + one
     line, the calendar grid fills the tile with day tint/dots instead of event

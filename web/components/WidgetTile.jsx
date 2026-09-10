@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useState, useRef, useEffect } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import { integrations, availableIntegrations } from '../store.js';
 import { mergeModel } from '../../src/shared/mergeModels.js';
@@ -111,17 +111,24 @@ const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 // A floating card listing everything that ships on one day — poster + name for each
 // release. Rendered through a portal into <body> because the tile is a `container: size`
 // box with `overflow: hidden`, which would otherwise clip (and contain) it.
-function DayPopover({ anchor, day, items }) {
-  const PW = 244;
+// It's interactive (hover it to keep it open, scroll a long day inside it) — the parent
+// wires onMouseEnter/onMouseLeave into the same hover-intent timer the day cells use.
+function DayPopover({ anchor, day, items, onMouseEnter, onMouseLeave }) {
+  const PW = 320;
   const left = Math.max(8, Math.min(anchor.left, window.innerWidth - PW - 8));
   const roomBelow = window.innerHeight - anchor.bottom;
-  const placeAbove = roomBelow < 240 && anchor.top > roomBelow;
+  const placeAbove = roomBelow < 320 && anchor.top > roomBelow;
   const pos = placeAbove
-    ? { bottom: `${window.innerHeight - anchor.top + 6}px` }
-    : { top: `${anchor.bottom + 6}px` };
+    ? { bottom: `${window.innerHeight - anchor.top + 6}px`, maxHeight: `${anchor.top - 14}px` }
+    : { top: `${anchor.bottom + 6}px`, maxHeight: `${roomBelow - 14}px` };
 
   return createPortal(
-    <div class="widget-cal-pop" style={{ left: `${left}px`, width: `${PW}px`, ...pos }}>
+    <div
+      class="widget-cal-pop"
+      style={{ left: `${left}px`, width: `${PW}px`, ...pos }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       <div class="widget-cal-pop-date">
         {day.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
       </div>
@@ -147,6 +154,31 @@ function DayPopover({ anchor, day, items }) {
 
 function MonthGrid({ month, today, byDay }) {
   const [pop, setPop] = useState(null);
+  // Hover-intent: the popover is portalled to <body>, so there's a gap between a day
+  // cell and its card. Closing is deferred so the cursor can cross that gap (or move
+  // onto the card to scroll a busy day) without the card vanishing.
+  const closeTimer = useRef(null);
+  const cancelClose = () => {
+    clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setPop(null), 160);
+  };
+  // A real page scroll orphans the fixed-positioned card from its cell — close it.
+  // Scrolls that originate *inside* the card (a busy day's list) are explicitly ignored.
+  useEffect(() => {
+    if (!pop) return undefined;
+    const onScroll = (e) => {
+      if (e.target?.closest?.('.widget-cal-pop')) return;
+      setPop(null);
+    };
+    window.addEventListener('scroll', onScroll, true);
+    return () => window.removeEventListener('scroll', onScroll, true);
+  }, [pop]);
+  useEffect(() => cancelClose, []);
+
   const year = month.getFullYear();
   const mon = month.getMonth();
   const firstOfMonth = new Date(year, mon, 1);
@@ -158,9 +190,10 @@ function MonthGrid({ month, today, byDay }) {
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, mon, d));
   while (cells.length % 7) cells.push(null);
 
-  const openPop = (day, bucket) => (e) =>
+  const openPop = (day, bucket) => (e) => {
+    cancelClose();
     setPop({ key: ymd(day), day, items: bucket, anchor: e.currentTarget.getBoundingClientRect() });
-  const closePop = () => setPop(null);
+  };
 
   return (
     <div
@@ -182,9 +215,9 @@ function MonthGrid({ month, today, byDay }) {
             class={`widget-cal-cell${isToday ? ' widget-cal-today' : ''}${bucket ? ' widget-cal-has' : ''}`}
             tabIndex={bucket ? 0 : undefined}
             onMouseEnter={bucket ? openPop(day, bucket) : undefined}
-            onMouseLeave={bucket ? closePop : undefined}
+            onMouseLeave={bucket ? scheduleClose : undefined}
             onFocus={bucket ? openPop(day, bucket) : undefined}
-            onBlur={bucket ? closePop : undefined}
+            onBlur={bucket ? scheduleClose : undefined}
           >
             <span class="widget-cal-daynum">{day.getDate()}</span>
             {bucket && (
@@ -206,7 +239,15 @@ function MonthGrid({ month, today, byDay }) {
           </div>
         );
       })}
-      {pop && <DayPopover anchor={pop.anchor} day={pop.day} items={pop.items} />}
+      {pop && (
+        <DayPopover
+          anchor={pop.anchor}
+          day={pop.day}
+          items={pop.items}
+          onMouseEnter={cancelClose}
+          onMouseLeave={scheduleClose}
+        />
+      )}
     </div>
   );
 }
