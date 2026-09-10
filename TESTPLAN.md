@@ -280,6 +280,7 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | F2 | Dashboard renders without a blank frame | ✅ `e2e/smoke` |
 | F3 | i18n: locale switch, English fallback, `{var}` interpolation, no orphan `es` keys | ✅ `unit/web.i18n` |
 | F4 | Settings forms (Appearance/Pages/Integrations/Backup/ComposeScan), tile modal, icon picker, dynamic config form | 🖐️ §9 |
+| F4b | `SettingsView` sticky sub-nav: 5 tabs (Appearance/Pages/Integrations/Compose scan/Backup), all sections stay mounted; a tab click smooth-scrolls its section under the sticky nav (`scroll-margin-top` clears it, observer muted ~700ms during the jump); an `IntersectionObserver` re-highlights the active tab on manual scroll; nav wraps to multiple rows at phone width | 🖐️ §9.15 |
 | F5 | PWA install / offline shell / post-deploy auto-reload | 🖐️ §9 |
 | F6 | Every built-in tile type renders its widget body | 🖐️ §9 (F1/F2 cover the shell) |
 
@@ -481,6 +482,12 @@ Run after frontend changes or before a release. ~5 minutes.
 12. **Backup:** export a zip; re-import it → app restarts, data intact.
 13. **Config:** export YAML, edit the site title, re-import → applied.
 14. **PWA:** install, go offline, reload → shell still loads.
+15. **Settings sub-nav:** open Settings → a sticky pill row of 5 tabs sits at
+    the top. Click **Integrations** → the page scroll-jumps so the
+    "Integrations" heading lands just below the sticky nav (not hidden under
+    it), and that tab goes active. Scroll back up by hand → the active tab
+    tracks the section under the nav. Narrow to phone width → the row wraps to
+    two lines instead of overflowing.
 
 ---
 

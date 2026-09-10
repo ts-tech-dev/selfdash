@@ -831,6 +831,49 @@ body[data-has-bg]::before {
   gap: 20px;
 }
 
+/* Sticky in-page nav so Settings isn't one long scroll. Sections stay mounted;
+   a tab click scroll-jumps to one and the nav tracks what's in view. */
+.settings-nav {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+
+.settings-nav-tab {
+  background: none;
+  border: none;
+  border-radius: 7px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px 13px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.settings-nav-tab:hover {
+  color: var(--text);
+}
+
+.settings-nav-tab.active {
+  background: var(--accent);
+  color: #08101f;
+  font-weight: 600;
+}
+
+/* Clear the sticky nav when a tab click scrolls a section to the top. */
+.settings-anchor {
+  scroll-margin-top: 60px;
+}
+
 .settings-section {
   background: var(--surface);
   border: 1px solid var(--border);
