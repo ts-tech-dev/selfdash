@@ -1196,15 +1196,20 @@ body[data-has-bg]::before {
   text-align: center;
 }
 
-/* Flex, not grid: a fixed minmax() column width wraps to a second row once the
-   stats don't fit at that width. Flex items shrink together instead, so any
-   number of stats stays on one line — the container queries below step the
-   type down as the tile narrows so it stays legible rather than clipping. */
+/* Wraps, not a strict one-line row: a value like a formatted size ("101.2 GB")
+   just isn't renderable in the ~1/4-tile-width a 4-stat nowrap row leaves it at
+   the smallest tile size — no floor font-size is both legible and narrow
+   enough, it only ever traded a wide ellipsis for a tiny one. Letting stats
+   wrap onto more than one line once they don't fit at a reasonable size means
+   every value keeps enough width to actually show its full text; the
+   font-size scaling below (off each stat's own box) still shrinks things
+   somewhat before they wrap, so plenty of common cases still end up on one
+   line. */
 .widget-stats {
   display: flex;
-  flex-wrap: nowrap;
-  justify-content: space-between;
-  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 8px;
   margin: auto 0;
 }
 
@@ -1213,21 +1218,20 @@ body[data-has-bg]::before {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 52px;
+  min-width: 52px;
+  max-width: 100%;
+  /* Its own query container for the *inline* axis: width here is set by the
+     flex row above, independent of this element's own content, so sizing the
+     value/label font off this box's own cqw is not circular. This is what
+     makes the font track each stat's *actual* width — including the wider
+     box it gets once wrapping (above) kicks in — rather than a size derived
+     from the whole tile or row. */
+  container-type: inline-size;
 }
 
-/* font-size scales continuously with the tile's own box (cqw/cqh, from the
-   `container: tile / size` on .tile) instead of stepping down at a couple of
-   fixed breakpoints. A flex row of stats gets narrower per-item as more stats
-   are added or the tile shrinks, and fixed steps weren't small enough to keep
-   up — a value like "1013" would hit the old 0.9rem floor and still overflow
-   into an ellipsis. Scaling continuously (down to a still-legible floor) means
-   the text shrinks to fit instead of getting cut off; the ellipsis stays only
-   as a last-resort guard for content that's long even at the floor size (e.g.
-   a very long library name as a stat label). */
 .widget-stat-value {
-  font-size: max(0.6rem, min(9cqw, 13cqh, 1.2rem));
+  font-size: clamp(0.68rem, 15cqw, 1.2rem);
   font-weight: 700;
   max-width: 100%;
   overflow: hidden;
@@ -1236,7 +1240,7 @@ body[data-has-bg]::before {
 }
 
 .widget-stat-label {
-  font-size: max(0.48rem, min(5.5cqw, 8cqh, 0.7rem));
+  font-size: clamp(0.56rem, 10cqw, 0.7rem);
   color: var(--text-dim);
   max-width: 100%;
   overflow: hidden;
@@ -1245,20 +1249,22 @@ body[data-has-bg]::before {
 }
 
 @container tile (max-width: 260px) {
-  .widget-stats { gap: 4px; }
+  .widget-stats { gap: 4px 7px; }
 }
 
 @container tile (max-width: 160px) {
-  .widget-stats { gap: 3px; }
+  .widget-stats { gap: 3px 8px; }
 }
 
-/* Short tiles (the 1×1 row height) still need a tighter row gap — a combined
-   link+integration tile's icon/title header above .widget-body (see
-   .tile-link-header) leaves noticeably less vertical room here than a plain
-   widget tile's single-line toolbar does. Font size itself already tracks
-   height via the cqh term above. */
+/* Short tiles (the 1×1 row height) need their own step-down on the *height*
+   axis — a combined link+integration tile's icon/title header above
+   .widget-body (see .tile-link-header) leaves noticeably less vertical room
+   here than a plain widget tile's single-line toolbar does, and the cqw-based
+   sizing above doesn't track height. Tighter row gap too. */
 @container tile (max-height: 130px) {
-  .widget-stats { gap: 4px; }
+  .widget-stats { gap: 3px 8px; }
+  .widget-stat-value { font-size: clamp(0.62rem, 13cqw, 0.95rem); }
+  .widget-stat-label { font-size: clamp(0.5rem, 9cqw, 0.58rem); }
 }
 
 .widget-nowplaying {
