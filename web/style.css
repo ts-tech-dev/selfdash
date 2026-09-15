@@ -1217,8 +1217,17 @@ body[data-has-bg]::before {
   min-width: 0;
 }
 
+/* font-size scales continuously with the tile's own box (cqw/cqh, from the
+   `container: tile / size` on .tile) instead of stepping down at a couple of
+   fixed breakpoints. A flex row of stats gets narrower per-item as more stats
+   are added or the tile shrinks, and fixed steps weren't small enough to keep
+   up — a value like "1013" would hit the old 0.9rem floor and still overflow
+   into an ellipsis. Scaling continuously (down to a still-legible floor) means
+   the text shrinks to fit instead of getting cut off; the ellipsis stays only
+   as a last-resort guard for content that's long even at the floor size (e.g.
+   a very long library name as a stat label). */
 .widget-stat-value {
-  font-size: 1.2rem;
+  font-size: max(0.6rem, min(9cqw, 13cqh, 1.2rem));
   font-weight: 700;
   max-width: 100%;
   overflow: hidden;
@@ -1227,7 +1236,7 @@ body[data-has-bg]::before {
 }
 
 .widget-stat-label {
-  font-size: 0.7rem;
+  font-size: max(0.48rem, min(5.5cqw, 8cqh, 0.7rem));
   color: var(--text-dim);
   max-width: 100%;
   overflow: hidden;
@@ -1237,26 +1246,19 @@ body[data-has-bg]::before {
 
 @container tile (max-width: 260px) {
   .widget-stats { gap: 4px; }
-  .widget-stat-value { font-size: 1.05rem; }
-  .widget-stat-label { font-size: 0.64rem; }
 }
 
 @container tile (max-width: 160px) {
   .widget-stats { gap: 3px; }
-  .widget-stat-value { font-size: 0.9rem; }
-  .widget-stat-label { font-size: 0.58rem; }
 }
 
-/* Short tiles (the 1×1 row height) need the same step-down on the *height* axis —
-   a combined link+integration tile's icon/title header above .widget-body (see
-   .tile-link-header) leaves noticeably less vertical room here than a plain widget
-   tile's single-line toolbar does, so without this the value/label pair alone was
-   just tall enough to force .widget-body to scroll even though it's one row of
-   content. */
+/* Short tiles (the 1×1 row height) still need a tighter row gap — a combined
+   link+integration tile's icon/title header above .widget-body (see
+   .tile-link-header) leaves noticeably less vertical room here than a plain
+   widget tile's single-line toolbar does. Font size itself already tracks
+   height via the cqh term above. */
 @container tile (max-height: 130px) {
   .widget-stats { gap: 4px; }
-  .widget-stat-value { font-size: 1rem; }
-  .widget-stat-label { font-size: 0.62rem; }
 }
 
 .widget-nowplaying {
