@@ -112,7 +112,7 @@ test('jellyfin stats: maps /Items/Counts, missing counts default to 0', async ()
   });
 });
 
-test('emby shares the _embyBase logic and sends the X-Emby-Token header + api_key param', async () => {
+test('emby shares the _embyBase logic and authenticates API calls via headers only, no api_key param', async () => {
   const http = makeHttp([
     ['/Sessions', SESSIONS],
     ['/Items/Counts', { MovieCount: 1 }],
@@ -123,8 +123,31 @@ test('emby shares the _embyBase logic and sends the X-Emby-Token header + api_ke
 
   for (const { url, opts } of http.calls) {
     assert.equal(opts.headers['X-Emby-Token'], 'tok-123');
-    assert.ok(url.includes('api_key=tok-123'), `${url} carries the token as a query param too`);
+    assert.match(opts.headers.Authorization, /MediaBrowser .*Token="tok-123"/);
+    assert.ok(
+      !url.includes('api_key='),
+      `${url} must not carry the legacy api_key query param, which Jellyfin 12.x rejects outright`
+    );
   }
+});
+
+test('jellyfin nowplaying: authenticates /Sessions via headers only, image URL still carries api_key for <img> tags', async () => {
+  const http = makeHttp([
+    ['/Sessions', SESSIONS],
+    ['/Items/Counts', {}],
+  ]);
+  const { byView } = await new JellyfinIntegration().fetchData({ config: CONFIG, http });
+
+  const [sessionsCall] = http.calls.filter((c) => c.url.includes('/Sessions'));
+  assert.equal(sessionsCall.url, 'http://media.local/Sessions', 'no api_key query param on the API call');
+  assert.equal(sessionsCall.opts.headers['X-Emby-Token'], 'tok-123');
+  assert.match(sessionsCall.opts.headers.Authorization, /MediaBrowser .*Token="tok-123"/);
+
+  assert.equal(
+    byView.nowplaying.items[0].image,
+    'http://media.local/Items/show1/Images/Primary?api_key=tok-123&fillHeight=180',
+    'image URL keeps the query-param token since a browser <img> tag cannot set headers'
+  );
 });
 
 test('jellyfin and emby expose the same view catalog', () => {

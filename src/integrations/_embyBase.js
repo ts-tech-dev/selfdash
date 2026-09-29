@@ -1,8 +1,6 @@
 // Shared by the Jellyfin and Emby integrations. Jellyfin is a fork of Emby and the two
-// still speak the same API for what we need: an access token in an `X-Emby-Token` header
-// (also accepted as an `api_key` query param, which is what the image URLs want),
-// `/Sessions` for active playback, `/Items/Counts` for library totals. The two
-// integration files differ only in their static key/title.
+// still speak the same API for what we need: `/Sessions` for active playback, `/Items/Counts`
+// for library totals. The two integration files differ only in their static key/title.
 import { runAllViews } from './_views.js';
 
 const VIEWS = {
@@ -18,15 +16,22 @@ export function fetchEmbyData(ctx) {
 }
 
 const baseOf = (config) => config.url.replace(/\/+$/, '');
-const authHeaders = (config) => ({ 'X-Emby-Token': config.apiKey, Accept: 'application/json' });
-// The token also has to ride in the query string for image URLs (which the browser loads
-// directly, with no chance to set a header) and for servers that only check the param.
-const withKey = (base, path, config) =>
-  `${base}${path}${path.includes('?') ? '&' : '?'}api_key=${encodeURIComponent(config.apiKey)}`;
+
+// Jellyfin 12.x's `DisableLegacyAuthorization` migration rejects any request carrying the
+// old `?api_key=` query param with a 401 outright, regardless of whether a valid auth header
+// is also present. So API calls go through the header-only, non-deprecated `Authorization:
+// MediaBrowser ...` scheme (Emby/older Jellyfin also accept `X-Emby-Token`, kept alongside
+// for back-compat). Image URLs still need the token in the query string since a plain <img>
+// tag can't set headers, and image endpoints aren't covered by that migration.
+const authHeaders = (config) => ({
+  'X-Emby-Token': config.apiKey,
+  Authorization: `MediaBrowser Client="selfdash", Device="selfdash", DeviceId="selfdash", Version="1.0.0", Token="${config.apiKey}"`,
+  Accept: 'application/json',
+});
 
 async function fetchNowPlaying({ config, http }) {
   const base = baseOf(config);
-  const sessions = await http.fetchJson(withKey(base, '/Sessions', config), { headers: authHeaders(config) });
+  const sessions = await http.fetchJson(`${base}/Sessions`, { headers: authHeaders(config) });
   // Most sessions are idle (a paused client, a web UI sitting open) — only the ones with a
   // NowPlayingItem are actually playing something.
   const active = (Array.isArray(sessions) ? sessions : []).filter((s) => s && s.NowPlayingItem);
@@ -58,7 +63,7 @@ async function fetchNowPlaying({ config, http }) {
 
 async function fetchLibraryStats({ config, http }) {
   const base = baseOf(config);
-  const c = await http.fetchJson(withKey(base, '/Items/Counts', config), { headers: authHeaders(config) });
+  const c = await http.fetchJson(`${base}/Items/Counts`, { headers: authHeaders(config) });
   return {
     type: 'stats',
     items: [
