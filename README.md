@@ -376,7 +376,11 @@ Several integrations had real, live-verified gotchas worth knowing about:
   real `haveagitgat/tdarr` container rather than docs: `cruddb`'s `mode` only accepts
   `getById`/`getByIndex`/`getAll`/`insert`/`update`/`removeOne`/`removeAll`/`getCount` (no
   `find`), and `TranscodeDecisionMaker` values are Title Case (`"Queued"`, `"Transcode error"`,
-  `"Transcode success"`, `"Not required"`), not lowercase.
+  `"Transcode success"`, `"Not required"`), not lowercase. The `StatisticsJSONDB` `tableNCount`
+  fields follow the web UI's status tabs (table0 Hold, table1 Transcode Queue, table2
+  Success/Not required, table3 Error/Cancelled, table4–6 Health Check queue/healthy/error), and
+  file rows are read a page at a time through `POST /api/v2/client/status-tables` — pulling
+  `FileJSONDB` with `getAll` ships the whole library on every poll.
 - **Deluge**'s web UI process starts out **disconnected** from the daemon (after a restart, or
   on an install that's never been opened in a browser) — `web.update_ui` doesn't error in that
   state, it just returns `torrents: null`, which would otherwise look exactly like "no torrents"
