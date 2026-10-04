@@ -216,6 +216,9 @@ Legend: ✅ automated · 🖐️ manual (§9) · ⏭️ intentionally not covere
 | H3 | Non-`http(s)` entries filtered out | ✅ `api/tileData` |
 | H4 | Empty `urls` → `{}` | ✅ `api/tileData` |
 | H5 | 15 s response cache | 🖐️ (add ✅ when touched) |
+| H6 | **Container update badge** (`src/shared/containerUpdates.js`, `TileCard.jsx`): enabled integrations' `data.hidden.containerUpdates` are collected and deduped (same name+environment from Dockhand and WUD → one entry; disabled integrations skipped); auto-match normalizes the tile title (or an untitled widget's integration name) and compares it to each container's keys — full name, Compose replica suffix dropped, each trailing hyphen-run as the service, and the stack prefix before the first `-`/`_`/`.`; titles under 3 chars never auto-match; `config.containers` = exact case-insensitive comma list (replaces auto) or `-` (off); panel tiles never badge; tooltip names container, image, host and source | ✅ `unit/shared.containerUpdates` · 🖐️ §7 step 16 |
+| H7 | Hidden views (`_views.js`): `hidden: true` views land in `result.hidden`, not `byView`; `viewCatalog` omits them; a failing hidden view falls back to last-good (stale) and never fails the poll alone; `perPoll` shares one upstream fetch across a poll's views. Dockhand + WUD publish `containerUpdates` this way with a single upstream call per poll | ✅ `unit/integrations.views` · `unit/integrations.dockhand` · `unit/integrations.whatsupdocker` |
+| H8 | Tile `config.containers` (`containersConfig` in `tileConfig.js`): trimmed, ≤300 chars, kept on link and widget tiles, dropped from panel tiles, blank clears it | ✅ `api/tiles` |
 
 ### 3.9 Compose scan (`src/routes/composeScan.js`, `src/lib/composeScan.js`)
 | # | Case | Where |
@@ -489,6 +492,13 @@ Run after frontend changes or before a release. ~5 minutes.
     it), and that tab goes active. Scroll back up by hand → the active tab
     tracks the section under the nav. Narrow to phone width → the row wraps to
     two lines instead of overflowing.
+16. **Container update badges:** with a Dockhand (or What's Up Docker) integration that
+    reports pending updates, a link tile titled like one of those containers shows the amber ↑
+    badge top-left; hovering names the container/image/source. It stays fully visible on
+    light, dark and a glass/terminal theme, at the shortest tile height, on a phone-width
+    viewport, and in edit mode (widget toolbar title and drag mark sit clear of it). Set the
+    tile's **Update badge containers** to `-` → badge gone; to an exact container name → that
+    container's badge appears on an unrelated title.
 
 ---
 

@@ -39,3 +39,20 @@ test('whatsupdocker stats: counts monitored/updates/up-to-date', async () => {
     ],
   });
 });
+
+test('whatsupdocker containerUpdates (hidden, feeds tile badges): update-available containers with image, one fetch per poll', async () => {
+  let calls = 0;
+  const http = {
+    fetchJson: async () => {
+      calls++;
+      return [
+        { name: 'nginx', watcher: 'local', updateAvailable: true, image: { name: 'library/nginx', tag: { value: '1.20' } }, result: { tag: '1.27' } },
+        { name: 'redis', watcher: 'local', updateAvailable: false, image: { name: 'library/redis', tag: { value: '7' } } },
+      ];
+    },
+  };
+  const result = await new WhatsUpDockerIntegration().fetchData({ config: cfg('http://wud-z.local'), http });
+  assert.deepEqual(result.hidden.containerUpdates.items, [{ name: 'nginx', image: 'library/nginx:1.20', environment: 'local' }]);
+  assert.deepEqual(Object.keys(WhatsUpDockerIntegration.views), ['list', 'stats']);
+  assert.equal(calls, 1, 'list, stats and containerUpdates share one /api/containers call');
+});

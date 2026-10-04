@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runAllViews } from '../../src/integrations/_views.js';
+import { runAllViews, viewCatalog, perPoll } from '../../src/integrations/_views.js';
 
 test('runAllViews: every view fetched and keyed by its view key', async () => {
   const views = {
@@ -61,4 +61,41 @@ test('runAllViews: a failing view with no previous data (or previous data that w
   const previous = { type: 'multi', byView: { queue: { type: 'error', error: 'earlier failure' } } };
   const staleErrorPrevious = await runAllViews({ previous }, views);
   assert.equal(staleErrorPrevious.byView.queue.type, 'error');
+});
+
+test('runAllViews: hidden views land in `hidden`, never in byView', async () => {
+  const views = {
+    list: { label: 'List', run: async () => ({ type: 'list', items: [] }) },
+    containerUpdates: { label: 'CU', hidden: true, run: async () => ({ type: 'containerUpdates', items: [{ name: 'a' }] }) },
+  };
+  const result = await runAllViews({}, views);
+  assert.deepEqual(Object.keys(result.byView), ['list']);
+  assert.deepEqual(result.hidden.containerUpdates.items, [{ name: 'a' }]);
+  assert.deepEqual(viewCatalog(views), { list: 'List' }, 'hidden views are not offered to tiles');
+});
+
+test('runAllViews: a failing hidden view falls back to its last-good data and never fails the poll on its own', async () => {
+  const views = {
+    list: { label: 'List', run: async () => ({ type: 'list', items: [] }) },
+    containerUpdates: { label: 'CU', hidden: true, run: async () => { throw new Error('boom'); } },
+  };
+  const previous = { type: 'multi', byView: {}, hidden: { containerUpdates: { type: 'containerUpdates', items: [{ name: 'old' }] } } };
+  const result = await runAllViews({ previous }, views);
+  assert.deepEqual(result.hidden.containerUpdates.items, [{ name: 'old' }]);
+  assert.equal(result.hidden.containerUpdates.stale, true);
+
+  const allVisibleFail = {
+    list: { label: 'List', run: async () => { throw new Error('down'); } },
+    containerUpdates: { label: 'CU', hidden: true, run: async () => ({ type: 'containerUpdates', items: [] }) },
+  };
+  await assert.rejects(() => runAllViews({}, allVisibleFail), /List: down/);
+});
+
+test('perPoll: one upstream call per poll ctx, fresh per new ctx', async () => {
+  let calls = 0;
+  const load = () => perPoll(ctx, 'k', async () => ++calls);
+  let ctx = {};
+  assert.deepEqual(await Promise.all([load(), load()]), [1, 1]);
+  ctx = {};
+  assert.equal(await load(), 2);
 });

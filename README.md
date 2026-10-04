@@ -241,6 +241,27 @@ Then use the in-container paths (`/host/mnt/media`, …) in the tile's drive lis
 is only needed for real host network stats — `/proc/net/*` is network-namespace scoped, so the
 tile reads pid 1's view (`/host/proc/1/net/dev`) when the PID namespace is shared.
 
+## Container update badges
+
+With a **Dockhand** or **What's Up Docker** integration configured, every link or widget tile
+whose container has a pending image update gets a small amber ↑ badge in its top-left corner
+(hover it for the container, image, host and which integration reported it). Matching is by
+tile title — case and punctuation don't matter, Compose names are understood, and a stack's
+helpers count for its app:
+
+| Tile title | Matches containers |
+|---|---|
+| `Tautulli` | `tautulli` |
+| `DVD Burner` | `dvd-burner` |
+| `CloudCmd` | `adminapps-cloudcmd-1` (Compose `<project>-<service>-<n>`) |
+| `Immich` | `immich_server`, `immich_redis`, `immich_machine_learning`, … |
+
+When a title doesn't line up with the container name (e.g. a "qBittorrent MAM" tile backed by
+`MAMqt`), set **Update badge containers** in the tile's edit dialog to the exact container
+name(s), comma-separated; `-` turns the badge off for that tile. Panel tiles (clock, weather,
+…) never get a badge. The data is whatever the update integration last reported — Dockhand
+only knows about updates after its own scheduled (or manual) update check has run.
+
 ## Writing an integration
 
 Drop a file matching `*.integration.js` into `DATA_DIR/integrations/` (e.g.
@@ -324,6 +345,14 @@ per source since there's no sane way to merge a single number or now-playing car
 `mergeModel` in `web/components/WidgetTile.jsx`. If every view in `byView` failed, `runAllViews`
 throws so the tile keeps its last good data; a view that fails on its own becomes
 `{ type: 'error', error }` in its own slot instead of taking the rest down with it.
+
+A view declared with `hidden: true` is machine data for the dashboard rather than something a
+tile can show: it lands in `hidden` instead of `byView`, is left out of the catalog when you
+build `static views` with `viewCatalog(VIEWS)`, and never fails the poll on its own. The one in
+use today is `containerUpdates` (`{ type: 'containerUpdates', items: [{ name, image, environment }] }`),
+which feeds the container update badges — any integration that can list containers with a
+pending image update can publish it. When two views need the same upstream response, wrap the
+fetch in `perPoll(ctx, key, fn)` so it runs once per poll.
 
 The six `WidgetModel` shapes, and what each `items[]` entry looks like:
 

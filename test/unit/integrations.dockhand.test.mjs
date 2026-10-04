@@ -138,3 +138,17 @@ test('dockhand auth: failures come back as readable errors', async () => {
     /login failed/,
   );
 });
+
+test('dockhand containerUpdates (hidden, feeds tile badges): rows per environment, sharing one pending-updates fetch per poll', async () => {
+  const http = makeHttp();
+  const result = await run(http, { url: 'http://dockhand-k.local' });
+  assert.deepEqual(Object.keys(result.byView), ['stats', 'updates'], 'not a tile view');
+  assert.deepEqual(DockhandIntegration.views, { stats: 'Container stats', updates: 'Pending updates' });
+  assert.deepEqual(result.hidden.containerUpdates.items, [
+    { name: 'tautulli', image: 'lscr.io/linuxserver/tautulli:latest', environment: 'local' },
+    { name: 'navidrome', image: 'deluan/navidrome:latest', environment: 'local' },
+    { name: 'immich_server', image: 'ghcr.io/immich-app/immich-server:v3', environment: 'nas' },
+  ]);
+  const pendingCalls = http.calls.filter((c) => c.url.includes('/pending-updates?env=1'));
+  assert.equal(pendingCalls.length, 1, 'updates list and containerUpdates share the per-poll fetch');
+});

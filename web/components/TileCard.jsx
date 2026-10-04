@@ -1,12 +1,31 @@
-import { integrations, tileHealth } from '../store.js';
+import { integrations, tileHealth, containerUpdates } from '../store.js';
 import { WidgetTile } from './WidgetTile.jsx';
 import { registryEntry } from '../tiles/registry.jsx';
 import { resolveIcon } from '../tiles/icons.js';
 import { t } from '../i18n.js';
 import { dimmedTextColor } from '../../src/shared/color.js';
+import { tileContainerUpdates, updateBadgeLabel } from '../../src/shared/containerUpdates.js';
 
 function HealthDot({ state, label }) {
   return <span class={`tile-health tile-health-${state}`} title={label} aria-label={label} />;
+}
+
+// Top-left badge: a container behind this tile has a pending image update (matched by
+// title or the tile's "Containers" setting — see src/shared/containerUpdates.js).
+function UpdateBadge({ matches }) {
+  const label = updateBadgeLabel(matches);
+  return (
+    <span class="tile-update-badge" title={label} aria-label={label} role="img">
+      <svg viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M6 1.5 10.5 6.5H7.75V10.5h-3.5V6.5H1.5Z" fill="currentColor" />
+      </svg>
+    </span>
+  );
+}
+
+function tileUpdateMatches(tile) {
+  const integ = tile.integration_id ? integrations.value.find((i) => i.id === tile.integration_id) : null;
+  return tileContainerUpdates(tile, containerUpdates.value, integ?.name);
 }
 
 // Widget tiles: reuse the integration poller's verdict.
@@ -93,8 +112,11 @@ export function TileCard({
   const movable = editing && !narrow;
 
   const panel = registryEntry(tile.type);
+  const updates = panel ? [] : tileUpdateMatches(tile);
+  const updateBadge = updates.length > 0 && <UpdateBadge matches={updates} />;
   const className = [
     'tile',
+    updateBadge ? 'tile-has-update' : '',
     panel ? 'tile-panel-card' : '',
     tile.type === 'widget' ? 'tile-widget' : '',
     tile.type === 'iframe' ? 'tile-iframe' : '',
@@ -150,6 +172,7 @@ export function TileCard({
     return (
       <div {...rootProps}>
         <HealthDot {...widgetHealth(tile)} />
+        {updateBadge}
         <div class="tile-toolbar">
           {dragMark}
           {!hideTitle && <span class="tile-toolbar-title">{tile.title || 'Widget'}</span>}
@@ -170,6 +193,7 @@ export function TileCard({
     return (
       <div {...rootProps}>
         <HealthDot {...widgetHealth(tile)} />
+        {updateBadge}
         {dragMark}
         <a
           class="tile-link-header"
@@ -194,6 +218,7 @@ export function TileCard({
   return (
     <div {...rootProps}>
       <HealthDot {...urlHealth(tile.url)} />
+      {updateBadge}
       {dragMark}
       <a
         class="tile-link"

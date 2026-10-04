@@ -21,27 +21,60 @@
 // { type: 'error' } when there's no previous data for that view to fall back to.
 // The poll only fails outright (keeping the whole integration's last-good data on
 // screen, per scheduler.js) when every view failed this cycle.
+//
+// A view flagged `hidden: true` is machine data for the dashboard itself, not something
+// a tile can show (e.g. `containerUpdates`, which feeds the per-tile update badge — see
+// src/shared/containerUpdates.js). It runs and falls back exactly like the others but
+// lands in `hidden` instead of `byView`, is left out of `viewCatalog` (so tiles never
+// offer it), and doesn't count toward "every view failed".
 export async function runAllViews(ctx, views) {
   const keys = Object.keys(views);
   const settled = await Promise.allSettled(keys.map((k) => views[k].run(ctx)));
-  const previous = ctx?.previous?.type === 'multi' ? ctx.previous.byView || {} : {};
+  const prevMulti = ctx?.previous?.type === 'multi' ? ctx.previous : {};
 
   const byView = {};
+  const hidden = {};
   const failures = [];
+  let visibleCount = 0;
   settled.forEach((res, i) => {
     const key = keys[i];
+    const isHidden = Boolean(views[key].hidden);
+    const slot = isHidden ? hidden : byView;
+    if (!isHidden) visibleCount++;
     if (res.status === 'fulfilled') {
-      byView[key] = res.value;
+      slot[key] = res.value;
       return;
     }
     const error = res.reason?.message || String(res.reason);
-    failures.push(`${views[key].label}: ${error}`);
-    const prev = previous[key];
-    byView[key] = prev && prev.type !== 'error' ? { ...prev, stale: true, error } : { type: 'error', error };
+    if (!isHidden) failures.push(`${views[key].label}: ${error}`);
+    const prev = (isHidden ? prevMulti.hidden : prevMulti.byView)?.[key];
+    slot[key] = prev && prev.type !== 'error' ? { ...prev, stale: true, error } : { type: 'error', error };
   });
 
-  if (failures.length === keys.length) {
+  if (visibleCount > 0 && failures.length === visibleCount) {
     throw new Error(failures.join('; '));
   }
-  return { type: 'multi', byView };
+  return Object.keys(hidden).length ? { type: 'multi', byView, hidden } : { type: 'multi', byView };
+}
+
+// { viewKey: label } for an integration's static `views` — the tile "Show" picker's
+// catalog. Hidden views are excluded.
+export function viewCatalog(views) {
+  return Object.fromEntries(
+    Object.entries(views)
+      .filter(([, v]) => !v.hidden)
+      .map(([k, v]) => [k, v.label]),
+  );
+}
+
+// Shares one upstream fetch between the views of a single poll: every view gets the
+// same ctx object from runAllViews, so memoizing on it (plus a key) means e.g. a list
+// view and the hidden containerUpdates view hit the API once per poll, not twice. A
+// rejected fetch stays rejected for that poll — each view reports the same error.
+const pollMemo = new WeakMap();
+export function perPoll(ctx, key, fn) {
+  let memo = pollMemo.get(ctx);
+  if (!memo) pollMemo.set(ctx, (memo = new Map()));
+  if (!memo.has(key)) memo.set(key, fn());
+  return memo.get(key);
 }

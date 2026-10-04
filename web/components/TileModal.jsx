@@ -33,6 +33,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     views: Array.isArray(tile?.config?.views) ? tile.config.views : [],
     moreIntegrationIds: Array.isArray(tile?.config?.moreIntegrationIds) ? tile.config.moreIntegrationIds : [],
     group: tile?.config?.group || '',
+    containers: tile?.config?.containers || '',
     appearance: { accent: '', iconBg: '', textColor: '', hideTitle: false, ...(tile?.config?.appearance || {}) },
     // panel config, seeded from the registry defaults when adding
     panelConfig:
@@ -124,6 +125,13 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
     return cfg;
   }
 
+  // Link/widget tiles only: which containers' pending updates badge this tile
+  // (src/shared/containerUpdates.js). Blank = match by title, so it's omitted.
+  function containersConfig() {
+    const v = form.containers.trim();
+    return v ? { containers: v } : {};
+  }
+
   function submit(e) {
     e.preventDefault();
     const { w, h } = SIZE_PRESETS[form.size];
@@ -142,7 +150,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
         integration_id: Number(form.integration_id),
         w,
         h,
-        config: { ...widgetCfg, ...commonConfig() },
+        config: { ...widgetCfg, ...containersConfig(), ...commonConfig() },
       });
       return;
     }
@@ -180,7 +188,7 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
       integration_id: includeIntegration && form.integration_id ? Number(form.integration_id) : null,
       w,
       h: linkH,
-      config: { ...widgetCfg, ...commonConfig() },
+      config: { ...widgetCfg, ...containersConfig(), ...commonConfig() },
     });
   }
 
@@ -402,6 +410,22 @@ export function TileModal({ tile, onClose, onSave, onDelete }) {
               <option value="newtab">New tab</option>
               <option value="same">Same tab</option>
             </select>
+          </label>
+        )}
+
+        {(isLink || isWidget) && (
+          <label>
+            Update badge containers
+            <input
+              value={form.containers}
+              placeholder="Auto (match by title)"
+              onInput={(e) => update('containers', e.target.value)}
+            />
+            <p class="field-hint">
+              Shows a small badge when Dockhand or What's Up Docker reports an image update for this
+              service's container. Blank matches the tile title; or list container names
+              (comma-separated); <code>-</code> turns the badge off.
+            </p>
           </label>
         )}
 

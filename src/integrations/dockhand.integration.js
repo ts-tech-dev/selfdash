@@ -1,5 +1,5 @@
 import { BaseIntegration } from './_base.js';
-import { runAllViews } from './_views.js';
+import { runAllViews, viewCatalog, perPoll } from './_views.js';
 
 // Dockhand (Docker/Compose manager, dockhand.pro). Verified live against fnsys/dockhand
 // 1.0.51 with a socket environment. GET /api/dashboard/stats returns one entry per
@@ -22,13 +22,15 @@ const STATS_TIMEOUT_MS = 30_000;
 const VIEWS = {
   stats: { label: 'Container stats', run: fetchStats },
   updates: { label: 'Pending updates', run: fetchUpdates },
+  // Feeds the per-tile update badge (src/shared/containerUpdates.js), not a tile view.
+  containerUpdates: { label: 'Container updates', hidden: true, run: fetchContainerUpdates },
 };
 
 export default class DockhandIntegration extends BaseIntegration {
   static key = 'dockhand';
   static title = 'Dockhand';
   static defaultInterval = 60;
-  static views = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, v.label]));
+  static views = viewCatalog(VIEWS);
 
   static configSchema = {
     fields: [
@@ -132,8 +134,12 @@ async function fetchStats(ctx) {
   };
 }
 
-// Raw pending-update rows for every selected environment.
-async function fetchPendingUpdates(ctx) {
+// Raw pending-update rows for every selected environment, fetched once per poll.
+function fetchPendingUpdates(ctx) {
+  return perPoll(ctx, 'pendingUpdates', () => loadPendingUpdates(ctx));
+}
+
+async function loadPendingUpdates(ctx) {
   const all = await apiGet(ctx, '/api/environments');
   const envs = pickEnvironments(Array.isArray(all) ? all : [], ctx.config.environment);
   const perEnv = await Promise.all(
@@ -156,5 +162,13 @@ async function fetchUpdates(ctx) {
           subtitle: multiEnv ? `${u.currentImage ?? ''} · ${u.environment}` : u.currentImage ?? '',
         }))
       : [{ title: 'All containers up to date' }],
+  };
+}
+
+async function fetchContainerUpdates(ctx) {
+  const { rows } = await fetchPendingUpdates(ctx);
+  return {
+    type: 'containerUpdates',
+    items: rows.filter((u) => u.containerName).map((u) => ({ name: u.containerName, image: u.currentImage ?? null, environment: u.environment ?? null })),
   };
 }

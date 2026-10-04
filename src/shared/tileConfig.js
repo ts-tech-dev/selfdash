@@ -176,6 +176,14 @@ export function widgetConfig(db, raw, primaryIntegrationId) {
   return out;
 }
 
+// Link/widget tiles: which containers' pending image updates badge the tile — blank
+// (omitted) = match by title, "-" = off, else comma-separated container names. See
+// src/shared/containerUpdates.js. Panel tiles never carry it.
+export function containersConfig(raw) {
+  const v = typeof raw?.containers === 'string' ? raw.containers.trim().slice(0, 300) : '';
+  return v ? { containers: v } : {};
+}
+
 // Fields valid on any tile regardless of type (group heading + per-tile appearance).
 export function commonConfig(raw) {
   const out = {};
@@ -224,6 +232,7 @@ export function resolveTileFields(db, type, body, existing) {
   // sends `config` it is authoritative (so clearing group/appearance sticks); when
   // it omits `config` entirely we keep whatever was stored.
   const common = commonConfig(body.config !== undefined ? body.config || {} : existingConfig);
+  const containers = containersConfig(body.config !== undefined ? body.config || {} : existingConfig);
 
   if (type === 'widget') {
     let integrationId = existing ? existing.integration_id : null;
@@ -236,7 +245,7 @@ export function resolveTileFields(db, type, body, existing) {
       url: null,
       open_mode: 'newtab',
       integration_id: integrationId,
-      config: { ...widgetConfig(db, rawConfig, integrationId), ...common },
+      config: { ...widgetConfig(db, rawConfig, integrationId), ...containers, ...common },
     };
   }
 
@@ -275,7 +284,7 @@ export function resolveTileFields(db, type, body, existing) {
 
   const open_mode = body.open_mode !== undefined ? normalizeOpenMode(body.open_mode) : existing?.open_mode || 'newtab';
 
-  const config = { ...(integrationId ? widgetConfig(db, rawConfig, integrationId) : {}), ...common };
+  const config = { ...(integrationId ? widgetConfig(db, rawConfig, integrationId) : {}), ...containers, ...common };
 
   return { url, open_mode, integration_id: integrationId, config };
 }

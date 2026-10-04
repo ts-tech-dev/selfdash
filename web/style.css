@@ -309,6 +309,9 @@ body[data-has-bg]::before {
      @container tile (…) queries, so they stay legible at the 1×1 size. Tile size
      is always driven by the grid, never by content, so size containment is safe. */
   container: tile / size;
+  /* Own stacking context: corner badges (health dot, update badge) can never paint
+     over a neighboring tile, even while tiles overlap mid-drag. */
+  isolation: isolate;
 }
 
 .tile:hover {
@@ -390,6 +393,39 @@ body[data-has-bg]::before {
 
 .tile-health-unknown {
   background: #8b949e;
+}
+
+/* "Container update available" badge, top-left corner (the health dot owns the
+   top-right). Solid amber with a dark glyph and a surface-colored ring so it reads on
+   every theme and over any tile background / accent; fixed colors on purpose, like
+   the health dot, so a tile's custom text/accent colors can't wash it out. */
+.tile-update-badge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e3b341;
+  color: #1a1d24;
+  box-shadow: 0 0 0 2px var(--surface), 0 1px 3px rgba(0, 0, 0, 0.35);
+  z-index: 4;
+  pointer-events: auto;
+  cursor: help;
+}
+
+.tile-update-badge svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+}
+
+/* Keep toolbar titles / the edit-mode drag mark clear of the badge. */
+.tile-has-update .tile-toolbar {
+  padding-left: 26px;
 }
 
 /* Keep the toolbar's Edit/Delete buttons clear of the dot. */

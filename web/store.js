@@ -1,5 +1,6 @@
 import { signal, computed } from '@preact/signals';
 import { api } from './api.js';
+import { collectContainerUpdates } from '../src/shared/containerUpdates.js';
 
 export const pages = signal([]);
 export const activePageId = signal(null);
@@ -129,6 +130,10 @@ export async function updateSettings(patch) {
 
 export const integrations = signal([]);
 export const availableIntegrations = signal([]);
+
+// Containers with a pending image update, from every enabled integration that reports
+// them (Dockhand, What's Up Docker) — drives the per-tile update badge in TileCard.
+export const containerUpdates = computed(() => collectContainerUpdates(integrations.value));
 
 export async function loadIntegrations() {
   integrations.value = await api.listIntegrations();

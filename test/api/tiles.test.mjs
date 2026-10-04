@@ -119,6 +119,22 @@ describe('tiles API', () => {
     assert.equal(cleared.body.integration_id, null);
   });
 
+  it('update-badge containers setting: kept (trimmed) on link tiles, dropped from panel tiles, cleared when blank', async () => {
+    const r = await create({ ...LINK_TILE, config: { containers: '  mamqt, dvd-burner ' } });
+    assert.equal(r.status, 201);
+    assert.deepEqual(r.body.config, { containers: 'mamqt, dvd-burner' });
+
+    const off = await create({ ...LINK_TILE, config: { containers: '-' } });
+    assert.deepEqual(off.body.config, { containers: '-' });
+
+    const clock = await create({ ...CLOCK_TILE, config: { ...(CLOCK_TILE.config || {}), containers: 'x' } });
+    assert.equal(clock.body.config.containers, undefined);
+
+    const cleared = await s.request(`/api/tiles/${r.body.id}`, { method: 'PATCH', body: { config: { containers: '   ' } } });
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.body.config.containers, undefined);
+  });
+
   it('a link tile can no longer set open_mode to iframe (falls back to newtab; iframe is its own tile type now)', async () => {
     const r = await create({ type: 'link', url: 'https://x.y', open_mode: 'iframe' });
     assert.equal(r.status, 201);
