@@ -380,7 +380,10 @@ Run after frontend changes or before a release. ~5 minutes.
    thumb color derives from `--text-dim`.
 3. **Pages:** add a page, rename it, drag tabs to reorder, delete it.
 4. **Tiles:** add one of each type (link, iframe, clock, weather, notes, search,
-   rss, calendar, bookmarks, customapi, resources); each renders a body. In the
+   rss, calendar, bookmarks, customapi, resources); each renders a body. A
+   weather tile accepts decimal coordinates (e.g. 45.0247 / -93.0877) without
+   a "nearest valid value" browser error, and a 0/0 tile shows a "Set
+   latitude/longitude" hint instead of ocean weather. In the
    Add/Edit modal, expand "Group & appearance" on a short window (and on the
    glass/gradient themes) → the dimmed backdrop scrolls, the whole modal is
    reachable, and the Save/Cancel/Delete bar stays stuck to the bottom of the

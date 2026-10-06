@@ -89,6 +89,9 @@ export function DynamicConfigForm({ fields, value, onChange, secretHints = {} })
             <input
               type={type}
               value={value[field.name] ?? ''}
+              // Without an explicit step, number inputs default to step=1 and the
+              // browser refuses to submit decimals (e.g. latitude 45.02).
+              step={type === 'number' ? field.step ?? 'any' : undefined}
               required={field.required && !hasExisting}
               placeholder={field.type === 'password' && hasExisting ? '(unchanged — leave blank to keep)' : ''}
               onInput={(e) => onChange(field.name, e.target.value)}

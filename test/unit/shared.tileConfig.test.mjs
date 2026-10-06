@@ -95,6 +95,13 @@ test('sanitizeTileConfig weather: number ranges', () => {
   assert.equal(c.units, 'metric');
 });
 
+test('sanitizeTileConfig weather: keeps decimal coordinates sent as form strings', () => {
+  // The tile editor posts <input type=number> values as strings; decimals must survive.
+  const c = sanitizeTileConfig('weather', { latitude: '45.0247', longitude: '-93.0877' });
+  assert.equal(c.latitude, 45.0247);
+  assert.equal(c.longitude, -93.0877);
+});
+
 test('sanitizeTileConfig bookmarks: drops links without a url, caps length', () => {
   const links = Array.from({ length: 80 }, (_, i) => ({ title: `t${i}`, url: `https://e/${i}` }));
   links.push({ title: 'no url' });

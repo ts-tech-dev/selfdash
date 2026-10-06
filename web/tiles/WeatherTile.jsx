@@ -16,6 +16,9 @@ export function WeatherTile({ tile }) {
     [c.latitude, c.longitude, c.units]
   );
 
+  if (!Number(c.latitude) && !Number(c.longitude)) {
+    return <div class="tile-panel tile-weather tile-panel-muted">Set latitude/longitude in tile settings</div>;
+  }
   if (loading && !data) return <div class="tile-panel tile-weather tile-panel-muted">Loading weather…</div>;
   if (error) return <div class="tile-panel tile-weather tile-panel-muted">Weather error: {error}</div>;
 
